@@ -15,6 +15,10 @@ __pycache__/
 outputs/original/
 outputs/hf_cache/
 outputs/tmp/
+outputs/quantized/**
+!outputs/quantized/**/metadata.json
+!outputs/quantized/**/layer_results.json
+!outputs/quantized/**/report.md
 outputs/**/*.pt
 outputs/**/*.pth
 outputs/**/*.bin

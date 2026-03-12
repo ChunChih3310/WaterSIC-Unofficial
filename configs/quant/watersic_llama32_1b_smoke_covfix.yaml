@@ -1,0 +1,24 @@
+run_name: llama32_1b_smoke_3p0bit_covfix
+target_global_bitwidth: 3.0
+reference_stats: false
+reference_device: cpu
+max_layers: 1
+max_modules: 7
+device:
+  override:
+calibration:
+  split: train
+  sequence_length: 2048
+  num_sequences: 2
+  batch_size: 1
+layer:
+  damping: 1.0e-4
+  binary_search_iterations: 8
+  row_sample_fraction: 0.25
+  golden_section_iterations: 5
+  dead_feature_tau: 1.0e-3
+  epsilon_qr: 0.0
+  epsilon_aw: 0.0
+  max_rescaler_iters: 4
+  rescaler_ridge: 1.0e-6
+  seed: 0

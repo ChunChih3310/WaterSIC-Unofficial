@@ -4,13 +4,15 @@
 
 1. Adaptive mixing search for `epsilon_qr` and `epsilon_aw` is not fully optimized yet.
 2. The current default configs keep `reference_stats: false` for runtime safety during the first overnight runs.
-3. The paper-comparison report will only be complete once the first real quantized runs finish and the actual numbers are written out.
+3. The current Q/K quantization path is numerically unstable in the completed smoke runs.
+4. Qwen3-8B has config support but has not been executed yet.
 
 ## Runtime Risks
 
 1. Full attention-output collection can be slow on long-context calibration.
 2. Saving full reconstructed-weight artifacts is disk-heavy by design.
 3. A second full-precision reference model for paired stats increases memory and runtime substantially, especially for `Qwen3-8B`.
+4. Smoke-mode layer-0 quantization already shows that Q/K are the dominant failure point; running full-model quantization before addressing that would waste overnight runtime.
 
 ## Honesty Note
 
@@ -19,3 +21,9 @@ This repository already contains real WaterSIC math and runnable infrastructure,
 - the first Llama-3.2-1B run has finished cleanly,
 - the resulting artifact has been benchmarked,
 - and the paper-vs-ours report has been written from real outputs.
+
+These conditions are now only partially satisfied:
+
+- real artifacts and reports exist
+- baseline and quantized perplexities exist
+- but the completed runs are smoke, layer-0-only runs and are far from the paper numbers

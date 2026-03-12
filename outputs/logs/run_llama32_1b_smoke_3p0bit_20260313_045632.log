@@ -1,0 +1,15 @@
+2026-03-13 04:56:32 | INFO | run_llama32_1b_smoke_3p0bit | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 04:56:32 | INFO | run_llama32_1b_smoke_3p0bit | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 04:57:23 | INFO | run_llama32_1b_smoke_3p0bit | Running BF16/FP baseline evaluation
+2026-03-13 04:57:52 | INFO | run_llama32_1b_smoke_3p0bit | Collecting statistics for layer 0
+2026-03-13 04:57:55 | INFO | run_llama32_1b_smoke_3p0bit | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 04:57:59 | INFO | run_llama32_1b_smoke_3p0bit | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 04:58:16 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.self_attn.q_proj with target 3.0000 and achieved 2.9543
+2026-03-13 04:58:22 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.self_attn.k_proj with target 3.0034 and achieved 2.6366
+2026-03-13 04:58:28 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.self_attn.v_proj with target 3.0103 and achieved 2.8294
+2026-03-13 04:58:43 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.self_attn.o_proj with target 3.0138 and achieved 2.9349
+2026-03-13 04:59:42 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.mlp.gate_proj with target 3.0204 and achieved 2.9948
+2026-03-13 05:00:55 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.mlp.up_proj with target 3.0331 and achieved 2.9814
+2026-03-13 05:06:52 | INFO | run_llama32_1b_smoke_3p0bit | Quantized model.layers.0.mlp.down_proj with target 3.0848 and achieved 3.1226
+2026-03-13 05:07:16 | INFO | run_llama32_1b_smoke_3p0bit | Running quantized evaluation
+2026-03-13 05:07:47 | INFO | run_llama32_1b_smoke_3p0bit | Experiment complete: {'artifact_dir': PosixPath('/nfs_tmp/Compression_team/src/WaterSIC/outputs/quantized/llama32_1b_smoke_3p0bit'), 'report_json_path': PosixPath('/nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_smoke_3p0bit.json'), 'report_md_path': PosixPath('/nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_smoke_3p0bit.md'), 'baseline_perplexity': 9.704082494153669, 'quantized_perplexity': 15835.218600489361}

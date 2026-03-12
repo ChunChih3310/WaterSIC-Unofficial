@@ -24,5 +24,25 @@
   - `configs/models/llama32_1b.yaml`
   - `configs/quant/watersic_llama32_1b_smoke.yaml`
   - `configs/eval/wikitext2.yaml`
-
-This file will be updated again after the smoke run and any broader overnight runs finish.
+- Completed four real `Llama-3.2-1B` smoke runs, each quantizing layer 0 only at an achieved rate near 3.0 bits/weight:
+  - `llama32_1b_smoke_3p0bit`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `15835.2186`
+    - note: run started before the first local commit, so the saved git hash is `unknown`
+  - `llama32_1b_smoke_3p0bit_attnfix`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `24887.4715`
+    - attention-weighting formula corrected to match equation (19)
+  - `llama32_1b_smoke_3p0bit_covfix`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `24887.4715`
+    - dead-feature pruning moved onto the final mixed covariance
+  - `llama32_1b_smoke_3p0bit_noaw`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `18227.7697`
+    - QKV attention weighting disabled for diagnosis
+- Diagnostic conclusion from the smoke runs:
+  - the pipeline is end-to-end runnable and produces artifacts/reports
+  - the current implementation is not yet numerically faithful for Q/K projections
+  - disabling attention weighting improves the Q/K transformed error by about 2.5-3x but does not restore usable perplexity
+- Qwen3-8B was configured but not run yet.
