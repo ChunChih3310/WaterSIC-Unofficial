@@ -13,8 +13,13 @@ def is_attention_weighted_target(kind: str) -> bool:
 def token_importance_from_attention(attention_probs: torch.Tensor) -> torch.Tensor:
     if attention_probs.ndim != 4:
         raise ValueError(f"Expected attention probs with shape [batch, heads, query, key], got {tuple(attention_probs.shape)}")
-    # Received attention mass is the most stable token-importance proxy available from the attention matrix.
-    return attention_probs.to(torch.float64).mean(dim=1).mean(dim=1)
+    probs = attention_probs.to(torch.float64)
+    batch, num_heads, seq_len, _ = probs.shape
+    weights = torch.zeros((batch, seq_len), dtype=torch.float64, device=probs.device)
+    for key_index in range(seq_len):
+        # Paper equation (19): average over heads and valid causal query positions i >= j.
+        weights[:, key_index] = probs[:, :, key_index:, key_index].mean(dim=(1, 2))
+    return weights
 
 
 def weighted_second_moment(x: torch.Tensor, token_weights: torch.Tensor) -> torch.Tensor:
