@@ -1,0 +1,8 @@
+model_id: meta-llama/Llama-3.2-1B
+model_revision: main
+tokenizer_id: meta-llama/Llama-3.2-1B
+tokenizer_revision: main
+architecture: llama
+dtype: bfloat16
+attn_implementation: eager
+trust_remote_code: false

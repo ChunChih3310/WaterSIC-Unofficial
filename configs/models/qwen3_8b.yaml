@@ -1,0 +1,8 @@
+model_id: Qwen/Qwen3-8B
+model_revision: main
+tokenizer_id: Qwen/Qwen3-8B
+tokenizer_revision: main
+architecture: qwen
+dtype: bfloat16
+attn_implementation: eager
+trust_remote_code: true
