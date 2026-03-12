@@ -96,13 +96,11 @@ def quantize_linear_layer(
     *,
     kind: str,
 ) -> LayerQuantizationResult:
-    variances = stats.variances
-    if variances is None:
-        variances = torch.diag(stats.sigma_x_hat if stats.sigma_x_hat is not None else stats.sigma_x)
-    dead_report = detect_dead_features(variances, tau=config.dead_feature_tau)
+    final_sigma_x, final_sigma_x_hat, final_sigma_cross = _final_statistics(stats, kind, config.epsilon_qr, config.epsilon_aw)
+    dead_variances = torch.diag(final_sigma_x_hat if final_sigma_x_hat is not None else final_sigma_x)
+    dead_report = detect_dead_features(dead_variances, tau=config.dead_feature_tau)
 
     reduced_weight = prune_columns(weight, dead_report).to(torch.float64)
-    final_sigma_x, final_sigma_x_hat, final_sigma_cross = _final_statistics(stats, kind, config.epsilon_qr, config.epsilon_aw)
     sigma_x = final_sigma_x[dead_report.keep_indices][:, dead_report.keep_indices]
     sigma_x_hat = final_sigma_x_hat[dead_report.keep_indices][:, dead_report.keep_indices]
     sigma_cross = final_sigma_cross[dead_report.keep_indices][:, dead_report.keep_indices]
