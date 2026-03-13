@@ -40,24 +40,36 @@ def _relative_mse_components(reference: torch.Tensor, candidate: torch.Tensor) -
 
 
 @torch.no_grad()
-def _module_input_relative_mse(
+def _collect_module_inputs(
     model,
-    reference_model,
-    dataset,
+    calibration_batches: list[torch.Tensor],
     module_path: str,
     *,
     device: torch.device,
-    reference_device: torch.device,
-    calibration_batch_size: int,
+) -> list[torch.Tensor]:
+    collected: list[torch.Tensor] = []
+    for batch in calibration_batches:
+        with ModuleInputCollector(model, module_paths=[module_path]) as store:
+            model(input_ids=batch.to(device), use_cache=False)
+        collected.append(store.inputs[module_path])
+    return collected
+
+
+@torch.no_grad()
+def _module_input_relative_mse(
+    model,
+    calibration_batches: list[torch.Tensor],
+    reference_inputs: list[torch.Tensor],
+    module_path: str,
+    *,
+    device: torch.device,
 ) -> float:
     numerator = 0.0
     denominator = 0.0
-    for batch in dataset.batches(calibration_batch_size):
+    for batch, reference_input in zip(calibration_batches, reference_inputs, strict=True):
         with ModuleInputCollector(model, module_paths=[module_path]) as q_store:
             model(input_ids=batch.to(device), use_cache=False)
-        with ModuleInputCollector(reference_model, module_paths=[module_path]) as ref_store:
-            reference_model(input_ids=batch.to(reference_device), use_cache=False)
-        num, den = _relative_mse_components(ref_store.inputs[module_path], q_store.inputs[module_path])
+        num, den = _relative_mse_components(reference_input, q_store.inputs[module_path])
         numerator += num
         denominator += den
     return numerator / max(denominator, 1e-12)
@@ -170,6 +182,13 @@ def optimize_attention_stage_mixing(
     }
     search_iterations = config.golden_section_iterations
     o_proj_path = o_proj_spec.full_path
+    calibration_batches = [batch.cpu() for batch in calibration_dataset.batches(calibration_batch_size)]
+    reference_inputs = _collect_module_inputs(
+        reference_model,
+        calibration_batches,
+        o_proj_path,
+        device=reference_device,
+    )
 
     def objective_for(epsilon_qr: float, epsilon_aw: float) -> tuple[float, list[dict[str, float]]]:
         _restore_module_weights(model, weight_backups, qkv_specs)
@@ -184,12 +203,10 @@ def optimize_attention_stage_mixing(
         )
         mse = _module_input_relative_mse(
             model,
-            reference_model,
-            calibration_dataset,
+            calibration_batches,
+            reference_inputs,
             o_proj_path,
             device=device,
-            reference_device=reference_device,
-            calibration_batch_size=calibration_batch_size,
         )
         _maybe_empty_cuda_cache()
         return mse, achieved
