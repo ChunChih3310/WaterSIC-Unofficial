@@ -7,10 +7,13 @@ from typing import Any, Callable
 
 import torch
 
-from watersic.models.hooks import ModuleInputCollector
 from watersic.models.registry import LinearModuleSpec
 
 from .watersic_layer import LayerQuantizationConfig, LayerStatistics, quantize_linear_layer
+
+
+class _EarlyStopModuleInputCapture(RuntimeError):
+    pass
 
 
 def _copy_module_weight(dst_module, src_module) -> None:
@@ -48,10 +51,26 @@ def _collect_module_inputs(
     device: torch.device,
 ) -> list[torch.Tensor]:
     collected: list[torch.Tensor] = []
+    module = model.get_submodule(module_path)
     for batch in calibration_batches:
-        with ModuleInputCollector(model, module_paths=[module_path]) as store:
-            model(input_ids=batch.to(device), use_cache=False)
-        collected.append(store.inputs[module_path])
+        captured: torch.Tensor | None = None
+
+        def hook(_module, args):
+            nonlocal captured
+            captured = args[0].detach().to(torch.float32).cpu()
+            raise _EarlyStopModuleInputCapture
+
+        handle = module.register_forward_pre_hook(hook)
+        try:
+            try:
+                model(input_ids=batch.to(device), use_cache=False)
+            except _EarlyStopModuleInputCapture:
+                pass
+        finally:
+            handle.remove()
+        if captured is None:
+            raise RuntimeError(f"Failed to capture inputs for {module_path}")
+        collected.append(captured)
     return collected
 
 
@@ -66,10 +85,14 @@ def _module_input_relative_mse(
 ) -> float:
     numerator = 0.0
     denominator = 0.0
-    for batch, reference_input in zip(calibration_batches, reference_inputs, strict=True):
-        with ModuleInputCollector(model, module_paths=[module_path]) as q_store:
-            model(input_ids=batch.to(device), use_cache=False)
-        num, den = _relative_mse_components(reference_input, q_store.inputs[module_path])
+    candidate_inputs = _collect_module_inputs(
+        model,
+        calibration_batches,
+        module_path,
+        device=device,
+    )
+    for reference_input, candidate_input in zip(reference_inputs, candidate_inputs, strict=True):
+        num, den = _relative_mse_components(reference_input, candidate_input)
         numerator += num
         denominator += den
     return numerator / max(denominator, 1e-12)
