@@ -36,8 +36,16 @@ def _sample_rows(target_y: torch.Tensor, fraction: float, seed: int = 0) -> torc
     return target_y.index_select(0, indices)
 
 
-def _evaluate(target_y: torch.Tensor, cholesky: torch.Tensor, c: float, side_information_bits: float = 0.0) -> tuple[float, BitrateMetrics]:
-    result = zsic_quantize(target_y, cholesky, c)
+def _evaluate(
+    target_y: torch.Tensor,
+    cholesky: torch.Tensor,
+    c: float,
+    side_information_bits: float = 0.0,
+    *,
+    use_lmmse: bool = True,
+    spacing_strategy: str = "watersic",
+) -> tuple[float, BitrateMetrics]:
+    result = zsic_quantize(target_y, cholesky, c, use_lmmse=use_lmmse, spacing_strategy=spacing_strategy)
     metrics = estimate_bitrate_metrics(result.quantized_ints, side_information_bits=side_information_bits)
     return metrics.final_effective_average_bitwidth, metrics
 
@@ -51,6 +59,8 @@ def binary_search_c(
     num_iterations: int = 30,
     row_sample_fraction: float = 0.1,
     seed: int = 0,
+    use_lmmse: bool = True,
+    spacing_strategy: str = "watersic",
 ) -> RateSearchResult:
     sampled_target = _sample_rows(target_y, row_sample_fraction, seed=seed).cpu()
     sampled_cholesky = cholesky.cpu()
@@ -59,25 +69,60 @@ def binary_search_c(
     low = 1e-6
     high = max(float(target_y.std().item()), 1e-3)
 
-    high_rate, _ = _evaluate(sampled_target, sampled_cholesky, high, side_information_bits)
+    high_rate, _ = _evaluate(
+        sampled_target,
+        sampled_cholesky,
+        high,
+        side_information_bits,
+        use_lmmse=use_lmmse,
+        spacing_strategy=spacing_strategy,
+    )
     while high_rate > target_rate:
         high *= 2.0
-        high_rate, _ = _evaluate(sampled_target, sampled_cholesky, high, side_information_bits)
+        high_rate, _ = _evaluate(
+            sampled_target,
+            sampled_cholesky,
+            high,
+            side_information_bits,
+            use_lmmse=use_lmmse,
+            spacing_strategy=spacing_strategy,
+        )
         history.append(SearchStep(c=high, rate=high_rate))
         if high > 1e6:
             break
 
-    low_rate, _ = _evaluate(sampled_target, sampled_cholesky, low, side_information_bits)
+    low_rate, _ = _evaluate(
+        sampled_target,
+        sampled_cholesky,
+        low,
+        side_information_bits,
+        use_lmmse=use_lmmse,
+        spacing_strategy=spacing_strategy,
+    )
     while low_rate < target_rate:
         low /= 2.0
-        low_rate, _ = _evaluate(sampled_target, sampled_cholesky, low, side_information_bits)
+        low_rate, _ = _evaluate(
+            sampled_target,
+            sampled_cholesky,
+            low,
+            side_information_bits,
+            use_lmmse=use_lmmse,
+            spacing_strategy=spacing_strategy,
+        )
         history.append(SearchStep(c=low, rate=low_rate))
         if low < 1e-12:
             break
 
     for _ in range(num_iterations):
         mid = 0.5 * (low + high)
-        mid_rate, _ = _evaluate(sampled_target, sampled_cholesky, mid, side_information_bits)
+        mid_rate, _ = _evaluate(
+            sampled_target,
+            sampled_cholesky,
+            mid,
+            side_information_bits,
+            use_lmmse=use_lmmse,
+            spacing_strategy=spacing_strategy,
+        )
         history.append(SearchStep(c=mid, rate=mid_rate))
         if mid_rate > target_rate:
             low = mid
@@ -85,7 +130,13 @@ def binary_search_c(
             high = mid
 
     selected_c = high
-    quantization = zsic_quantize(target_y.cpu(), cholesky.cpu(), selected_c)
+    quantization = zsic_quantize(
+        target_y.cpu(),
+        cholesky.cpu(),
+        selected_c,
+        use_lmmse=use_lmmse,
+        spacing_strategy=spacing_strategy,
+    )
     bitrate = estimate_bitrate_metrics(quantization.quantized_ints, side_information_bits=side_information_bits)
     return RateSearchResult(
         target_rate=target_rate,

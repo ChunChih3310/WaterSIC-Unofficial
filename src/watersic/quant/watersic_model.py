@@ -69,16 +69,18 @@ def collect_layer_statistics(
     collect_attentions = any(is_attention_weighted_target(spec.kind) for spec in layer_specs)
     for batch_index, batch in enumerate(calibration_dataset.batches(calibration_batch_size)):
         batch = batch.to(device)
-        with ModuleInputCollector(model, module_paths=module_paths, layer_paths=[layer_path]) as q_store:
-            outputs_q = model(input_ids=batch, use_cache=False, output_attentions=collect_attentions)
+        with torch.no_grad():
+            with ModuleInputCollector(model, module_paths=module_paths, layer_paths=[layer_path]) as q_store:
+                outputs_q = model(input_ids=batch, use_cache=False, output_attentions=collect_attentions)
         q_layer_input = q_store.layer_inputs[layer_path]
 
         ref_store = None
         ref_layer_input = None
         ref_attn = None
         if reference_model is not None:
-            with ModuleInputCollector(reference_model, module_paths=module_paths, layer_paths=[layer_path]) as ref_store:
-                outputs_ref = reference_model(input_ids=batch.to(reference_device), use_cache=False, output_attentions=collect_attentions)
+            with torch.no_grad():
+                with ModuleInputCollector(reference_model, module_paths=module_paths, layer_paths=[layer_path]) as ref_store:
+                    outputs_ref = reference_model(input_ids=batch.to(reference_device), use_cache=False, output_attentions=collect_attentions)
             ref_layer_input = ref_store.layer_inputs[layer_path]
             ref_attn = outputs_ref.attentions[layer_specs[0].layer_index].detach().cpu() if collect_attentions else None
         q_attn = outputs_q.attentions[layer_specs[0].layer_index].detach().cpu() if collect_attentions else None
@@ -185,6 +187,12 @@ def quantize_model_sequential(
                 max_rescaler_iters=config.layer_config.max_rescaler_iters,
                 rescaler_ridge=config.layer_config.rescaler_ridge,
                 seed=config.layer_config.seed,
+                use_lmmse=config.layer_config.use_lmmse,
+                use_activation_drift=config.layer_config.use_activation_drift,
+                use_residual_correction=config.layer_config.use_residual_correction,
+                use_attention_weighting=config.layer_config.use_attention_weighting,
+                use_adaptive_mixing=config.layer_config.use_adaptive_mixing,
+                spacing_strategy=config.layer_config.spacing_strategy,
             )
             result = quantize_linear_layer(
                 module.weight.detach().cpu(),

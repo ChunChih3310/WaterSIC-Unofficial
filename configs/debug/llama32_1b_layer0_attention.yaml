@@ -1,0 +1,120 @@
+run_name: llama32_1b_layer0_attention_debug
+reference_device:
+device:
+  override:
+calibration:
+  split: train
+  sequence_length: 2048
+  num_sequences: 4
+  batch_size: 1
+probe_eval:
+  split: test
+  sequence_length: 2048
+  num_sequences: 4
+  batch_size: 1
+quant:
+  target_bitwidth: 3.0
+  damping: 1.0e-4
+  binary_search_iterations: 8
+  row_sample_fraction: 0.25
+  golden_section_iterations: 5
+  dead_feature_tau: 1.0e-3
+  rescaler_ridge: 1.0e-6
+  seed: 0
+stages:
+  - name: a_hptq_equivalent
+    label: A. HPTQ-equivalent
+    spacing_strategy: uniform_alpha
+    use_lmmse: false
+    use_activation_drift: false
+    use_residual_correction: false
+    use_attention_weighting: false
+    use_adaptive_mixing: false
+    optimize_mixing: false
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: b_plain_watersic
+    label: B. PlainWaterSIC
+    spacing_strategy: watersic
+    use_lmmse: false
+    use_activation_drift: false
+    use_residual_correction: false
+    use_attention_weighting: false
+    use_adaptive_mixing: false
+    optimize_mixing: false
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: c_plus_lmmse
+    label: C. + LMMSE
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: false
+    use_residual_correction: false
+    use_attention_weighting: false
+    use_adaptive_mixing: false
+    optimize_mixing: false
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: d_plus_activation_drift
+    label: D. + activation drift correction
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: true
+    use_residual_correction: false
+    use_attention_weighting: false
+    use_adaptive_mixing: false
+    optimize_mixing: false
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: e_plus_residual_correction
+    label: E. + residual correction
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: true
+    use_residual_correction: true
+    use_attention_weighting: false
+    use_adaptive_mixing: false
+    optimize_mixing: false
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: f_plus_attention_weighting
+    label: F. + attention weighting
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: true
+    use_residual_correction: true
+    use_attention_weighting: true
+    use_adaptive_mixing: false
+    optimize_mixing: false
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: g_plus_adaptive_mixing
+    label: G. + adaptive mixing
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: true
+    use_residual_correction: true
+    use_attention_weighting: true
+    use_adaptive_mixing: true
+    optimize_mixing: true
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
+  - name: h_plus_diagonal_rescalers
+    label: H. + diagonal rescalers
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: true
+    use_residual_correction: true
+    use_attention_weighting: true
+    use_adaptive_mixing: true
+    optimize_mixing: true
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 4

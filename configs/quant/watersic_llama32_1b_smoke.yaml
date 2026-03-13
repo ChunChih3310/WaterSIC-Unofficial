@@ -19,6 +19,6 @@ layer:
   dead_feature_tau: 1.0e-3
   epsilon_qr: 0.0
   epsilon_aw: 0.0
-  max_rescaler_iters: 4
+  max_rescaler_iters: 0
   rescaler_ridge: 1.0e-6
   seed: 0

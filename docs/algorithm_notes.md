@@ -8,9 +8,10 @@ From Section 3 of the paper:
 - Cholesky factor: `Sigma_X = L L^T`.
 - Unequal spacing: `alpha_i = c / L_ii`.
 - ZSIC recursion runs from the last column to the first:
-  - `z_i = round(Y_i / c)`
-  - `gamma_i = <Y_i, c z_i> / ||c z_i||^2`
-  - update `Y <- Y - gamma_i c z_i L_i,:`
+  - `z_i = round(Y_i / (alpha_i L_ii))`
+  - in WaterSIC, `alpha_i L_ii = c`, so this becomes `z_i = round(Y_i / c)`
+  - `gamma_i = <Y_i, alpha_i L_ii z_i> / ||alpha_i L_ii z_i||^2`
+  - update `Y <- Y - gamma_i alpha_i z_i L_i,:`
 - Preliminary reconstruction is `W_0 = Z diag(alpha)`.
 - Final per-column LMMSE factor starts from `Gamma = diag(gamma)`.
 
@@ -44,5 +45,6 @@ Adaptive mixing from equation (20):
 
 - The transformed-space ZSIC implementation now follows the paper’s `Y, L, alpha_i, gamma_i` formulation.
 - The layer quantizer forms `Sigma_Xhat`, `Sigma_X,Xhat`, and `Sigma_Delta,Xhat`, then solves the transformed objective by triangular solve instead of explicit inverse.
+- The `Y` construction now explicitly computes `target_cross @ (L^T)^(-1)`, which reduces to `W L` in the plain WaterSIC case.
 - The diagonal rescaler step is implemented in the transformed objective using the update equations from Section 4.
 - Adaptive mixing search is not fully optimized yet; fixed `epsilon_qr` and `epsilon_aw` values are supported in configs.

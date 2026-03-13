@@ -75,3 +75,35 @@ def optimize_diagonal_rescalers(
         final_objective=_objective(w0, target_cross, sigma_x_hat, row_scale, column_scale),
         iterations=max_iters,
     )
+
+
+def disabled_rescalers(
+    weight0: torch.Tensor,
+    target_cross: torch.Tensor,
+    sigma_x_hat: torch.Tensor,
+    *,
+    initial_column_scale: torch.Tensor | None = None,
+) -> RescalerResult:
+    w0 = weight0.to(torch.float64)
+    row_scale = torch.ones(w0.shape[0], dtype=torch.float64, device=w0.device)
+    column_scale = (
+        torch.ones(w0.shape[1], dtype=torch.float64, device=w0.device)
+        if initial_column_scale is None
+        else initial_column_scale.to(torch.float64).clone()
+    )
+    reconstructed = (w0 * row_scale[:, None]) * column_scale[None, :]
+    objective = _objective(
+        w0,
+        target_cross.to(torch.float64),
+        sigma_x_hat.to(torch.float64),
+        row_scale,
+        column_scale,
+    )
+    return RescalerResult(
+        row_scale=row_scale.to(weight0.dtype),
+        column_scale=column_scale.to(weight0.dtype),
+        reconstructed=reconstructed.to(weight0.dtype),
+        initial_objective=objective,
+        final_objective=objective,
+        iterations=0,
+    )

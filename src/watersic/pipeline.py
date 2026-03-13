@@ -28,9 +28,15 @@ def build_layer_config(quant_config: dict) -> LayerQuantizationConfig:
         dead_feature_tau=float(layer_cfg.get("dead_feature_tau", 1e-3)),
         epsilon_qr=float(layer_cfg.get("epsilon_qr", 0.0)),
         epsilon_aw=float(layer_cfg.get("epsilon_aw", 0.0)),
-        max_rescaler_iters=int(layer_cfg.get("max_rescaler_iters", 8)),
+        max_rescaler_iters=int(layer_cfg.get("max_rescaler_iters", 0)),
         rescaler_ridge=float(layer_cfg.get("rescaler_ridge", 1e-8)),
         seed=int(layer_cfg.get("seed", 0)),
+        use_lmmse=bool(layer_cfg.get("use_lmmse", True)),
+        use_activation_drift=bool(layer_cfg.get("use_activation_drift", True)),
+        use_residual_correction=bool(layer_cfg.get("use_residual_correction", True)),
+        use_attention_weighting=bool(layer_cfg.get("use_attention_weighting", True)),
+        use_adaptive_mixing=bool(layer_cfg.get("use_adaptive_mixing", True)),
+        spacing_strategy=str(layer_cfg.get("spacing_strategy", "watersic")),
     )
 
 
