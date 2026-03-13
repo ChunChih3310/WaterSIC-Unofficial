@@ -192,3 +192,68 @@
   - conclusion:
     - the residual-correction blocker at `model.layers.1.self_attn.o_proj` is fixed for the staged smoke path
     - the next correct scope expansion is the fuller `Llama-3.2-1B` ~`3.0`-bit run, still with rescalers off
+- Completed the first full-model `Llama-3.2-1B` run at about `3.0` bits with the fixed sequential path:
+  - model config: `configs/models/llama32_1b.yaml`
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_norescaler.yaml`
+  - eval config: `configs/eval/wikitext2.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_norescaler_20260313_143248.log`
+  - saved report bundle:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_norescaler.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_norescaler.md`
+  - saved artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_norescaler/`
+- Full-run configuration and status:
+  - `reference_stats: true`
+  - `reference_device: cuda`
+  - residual correction enabled with the fixed formula
+  - staged stat refresh enabled
+  - diagonal rescalers disabled
+  - calibration chunks: `8`
+  - sequence length: `2048`
+  - reference stats requested: `true`
+  - reference stats effective count: `109` of `112` quantized matrices
+- Full-model result:
+  - target global bitwidth: `3.0000`
+  - achieved effective global bitwidth: `2.9984`
+  - raw average bitwidth: `8.4774`
+  - entropy average bitwidth: `2.9865`
+  - Huffman average bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `16.8684`
+  - runtime: `19408.47s` (`5.39h`)
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none (`[]`)
+- Layerwise diagnosis from the full run:
+  - the run completed all `16` transformer layers without NaN/Inf, Cholesky failure, or residual-path blow-up
+  - the remaining distortion is concentrated in residual-path projections, not across the whole model
+  - worst layers by relative weight MSE:
+    - `model.layers.11.self_attn.o_proj`: `0.4860`
+    - `model.layers.13.self_attn.o_proj`: `0.4685`
+    - `model.layers.12.self_attn.o_proj`: `0.4215`
+    - `model.layers.0.self_attn.o_proj`: `0.4164`
+    - `model.layers.4.self_attn.o_proj`: `0.4098`
+  - per-kind mean relative weight MSE:
+    - `o_proj`: `0.3215`
+    - `down_proj`: `0.3034`
+    - `k_proj`: `0.0979`
+    - `v_proj`: `0.0876`
+    - `q_proj`: `0.0696`
+    - `gate_proj`: `0.0502`
+    - `up_proj`: `0.0500`
+- Paper comparison for the first full-model point:
+  - paper baseline BF16 PPL (`Llama-3.2-1B`, Table 1): `9.76`
+  - our baseline BF16 PPL: `9.7041`
+  - absolute difference: `-0.0559`
+  - paper WaterSIC at `3.00` bits PPL: `10.57`
+  - our quantized run at `2.9984` effective bits: `16.8684`
+  - absolute difference: `+6.2984`
+- Immediate conclusion from the full run:
+  - this is the first real paper-comparable full-model point in the repo
+  - it is numerically sane and fully benchmarked
+  - it is not yet a faithful paper match
+  - the current accuracy gap is no longer a stability blocker; it is now a quality gap concentrated mostly in `o_proj` / `down_proj`
+  - the most likely contributors are:
+    - diagonal rescalers still disabled
+    - adaptive mixing in the sequential pipeline still uses fixed config values instead of per-block search
+    - the full run used only `8` calibration chunks as a runtime shortcut
