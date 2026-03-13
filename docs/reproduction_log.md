@@ -257,3 +257,81 @@
     - diagonal rescalers still disabled
     - adaptive mixing in the sequential pipeline still uses fixed config values instead of per-block search
     - the full run used only `8` calibration chunks as a runtime shortcut
+- Completed the full-model rescaler validation run on top of the stable path:
+  - model config: `configs/models/llama32_1b.yaml`
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler.yaml`
+  - eval config: `configs/eval/wikitext2.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_20260313_221946.log`
+  - saved report bundle:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler.md`
+    - `outputs/reports/full_llama32_1b_rescaler_validation_report.md`
+  - saved artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler/`
+- Rescaler validation configuration and status:
+  - `reference_stats: true`
+  - residual correction enabled with the fixed formula
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled with `max_rescaler_iters: 4`
+  - calibration chunks: `8`
+  - sequence length: `2048`
+  - reference stats effective count: `109 / 112`
+- Rescaler validation result:
+  - target global bitwidth: `3.0000`
+  - achieved effective global bitwidth: `2.9984`
+  - entropy average bitwidth: `2.9865`
+  - Huffman average bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `15.7029`
+  - improvement vs no-rescaler full-model baseline: `-1.1654`
+  - paper gap reduced from `+6.2984` to `+5.1329`
+  - quantization runtime: `18417.68s`
+  - total runtime: `18525.23s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Distortion diagnosis from the rescaler validation:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.3215 -> 0.3170`
+    - `down_proj`: `0.3034 -> 0.3023`
+    - other kinds moved only marginally
+  - worst layers remained concentrated in `o_proj`, but each of the prior top-3 late-layer outliers improved:
+    - `model.layers.11.self_attn.o_proj`: `0.4860 -> 0.4763`
+    - `model.layers.12.self_attn.o_proj`: `0.4215 -> 0.4178`
+    - `model.layers.13.self_attn.o_proj`: `0.4685 -> 0.4596`
+  - representative `down_proj` improvements:
+    - `model.layers.0.mlp.down_proj`: `0.3644 -> 0.3635`
+    - `model.layers.6.mlp.down_proj`: `0.3364 -> 0.3335`
+    - `model.layers.11.mlp.down_proj`: `0.3166 -> 0.3146`
+- Reference-stats coverage audit for the successful full-model path:
+  - non-effective matrices:
+    - `model.layers.0.self_attn.q_proj`
+    - `model.layers.0.self_attn.k_proj`
+    - `model.layers.0.self_attn.v_proj`
+  - all three had `reference_stats_delta_norm = 0.0`
+  - diagnosis:
+    - expected, not a bug
+    - they are the first QKV stage in the network, so no earlier quantized layer exists to create drift at their inputs
+- Decision from the rescaler validation:
+  - diagonal rescalers are stable on the full-model path
+  - they improve `o_proj` distortion
+  - they improve `down_proj` distortion slightly
+  - they improve final WikiText-2 PPL materially
+  - therefore rescalers should remain enabled for the next upgraded full-model run
+- Promoted adaptive mixing to the general sequential pipeline:
+  - per-attention-block search is now implemented in the shared model quantizer
+  - search logic:
+    - initial rate calibration at `epsilon_qr = 0`, `epsilon_aw = 0`
+    - golden-section search over `epsilon_qr`
+    - golden-section search over `epsilon_aw`
+    - final stage quantization reruns the rate search with the selected pair
+  - runtime improvements added for this full-model path:
+    - cached reference `o_proj` inputs per stage
+    - candidate objective forwards stop at the target `o_proj` input instead of running through the full model
+- Started the upgraded full-model quality-recovery run:
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_20260314_033153.log`
+  - status at log start:
+    - rescalers enabled
+    - per-block adaptive mixing search enabled
+    - `golden_section_iterations: 15`
