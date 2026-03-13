@@ -107,6 +107,7 @@ def _layer_config_from_stage(base_quant: dict[str, Any], stage: AttentionDebugSt
         use_lmmse=stage.use_lmmse,
         use_activation_drift=stage.use_activation_drift,
         use_residual_correction=stage.use_residual_correction,
+        residual_scale=float(base_quant.get("residual_scale", 1.0)),
         use_attention_weighting=stage.use_attention_weighting,
         use_adaptive_mixing=stage.use_adaptive_mixing,
         spacing_strategy=stage.spacing_strategy,

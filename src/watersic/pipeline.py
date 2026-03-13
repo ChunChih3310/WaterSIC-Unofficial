@@ -35,6 +35,7 @@ def build_layer_config(quant_config: dict) -> LayerQuantizationConfig:
         use_lmmse=bool(layer_cfg.get("use_lmmse", True)),
         use_activation_drift=bool(layer_cfg.get("use_activation_drift", True)),
         use_residual_correction=bool(layer_cfg.get("use_residual_correction", True)),
+        residual_scale=float(layer_cfg.get("residual_scale", 1.0)),
         use_attention_weighting=bool(layer_cfg.get("use_attention_weighting", True)),
         use_adaptive_mixing=bool(layer_cfg.get("use_adaptive_mixing", True)),
         spacing_strategy=str(layer_cfg.get("spacing_strategy", "watersic")),

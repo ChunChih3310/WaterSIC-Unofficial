@@ -250,6 +250,7 @@ def quantize_model_sequential(
                     use_lmmse=config.layer_config.use_lmmse,
                     use_activation_drift=config.layer_config.use_activation_drift,
                     use_residual_correction=config.layer_config.use_residual_correction,
+                    residual_scale=config.layer_config.residual_scale,
                     use_attention_weighting=config.layer_config.use_attention_weighting,
                     use_adaptive_mixing=config.layer_config.use_adaptive_mixing,
                     spacing_strategy=config.layer_config.spacing_strategy,

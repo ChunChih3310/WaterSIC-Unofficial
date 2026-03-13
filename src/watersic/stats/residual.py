@@ -11,6 +11,17 @@ def is_residual_target(kind: str) -> bool:
 
 
 def residual_compensation_matrix(
+    sigma_delta_x_hat: torch.Tensor | None,
+    *,
+    scale: float = 1.0,
+) -> torch.Tensor | None:
+    if sigma_delta_x_hat is None:
+        return None
+    sigma_delta_x_hat = sigma_delta_x_hat.to(torch.float64)
+    return float(scale) * sigma_delta_x_hat
+
+
+def legacy_residual_compensation_matrix(
     sigma_x_hat: torch.Tensor,
     sigma_delta_x_hat: torch.Tensor | None,
     *,

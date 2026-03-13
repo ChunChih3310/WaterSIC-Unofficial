@@ -32,6 +32,7 @@ class LayerQuantizationConfig:
     use_lmmse: bool = True
     use_activation_drift: bool = True
     use_residual_correction: bool = True
+    residual_scale: float = 1.0
     use_attention_weighting: bool = True
     use_adaptive_mixing: bool = True
     spacing_strategy: str = "watersic"
@@ -73,6 +74,8 @@ class PreparedLayerProblem:
     sigma_x: torch.Tensor
     sigma_x_hat: torch.Tensor
     sigma_cross: torch.Tensor
+    base_target_cross: torch.Tensor
+    residual_term: torch.Tensor | None
     target_cross: torch.Tensor
     target_y: torch.Tensor
     cholesky: torch.Tensor
@@ -158,13 +161,14 @@ def prepare_layer_problem(
     _assert_finite_tensor("sigma_x_hat", sigma_x_hat)
     _assert_finite_tensor("sigma_cross", sigma_cross)
 
+    base_target_cross = reduced_weight @ sigma_cross
     compensation = None
     if config.use_residual_correction and is_residual_target(kind) and stats.sigma_delta_x_hat is not None:
         sigma_delta = stats.sigma_delta_x_hat.to(torch.float64)[:, dead_report.keep_indices]
-        compensation = residual_compensation_matrix(sigma_x_hat, sigma_delta)
+        compensation = residual_compensation_matrix(sigma_delta, scale=config.residual_scale)
         _assert_finite_tensor("sigma_delta_x_hat", sigma_delta)
         _assert_finite_tensor("compensation_matrix", compensation)
-    target_cross = reduced_weight @ sigma_cross
+    target_cross = base_target_cross
     if compensation is not None:
         target_cross = target_cross + compensation.to(target_cross.dtype)
     _assert_finite_tensor("target_cross", target_cross)
@@ -185,6 +189,8 @@ def prepare_layer_problem(
         sigma_x=sigma_x,
         sigma_x_hat=sigma_x_hat,
         sigma_cross=sigma_cross,
+        base_target_cross=base_target_cross,
+        residual_term=compensation,
         target_cross=target_cross,
         target_y=target_y,
         cholesky=cholesky,
@@ -254,8 +260,16 @@ def quantize_linear_layer(
         "sigma_x_fro_norm": float(torch.linalg.matrix_norm(problem.sigma_x, ord="fro").item()),
         "sigma_x_hat_fro_norm": float(torch.linalg.matrix_norm(problem.sigma_x_hat, ord="fro").item()),
         "sigma_cross_fro_norm": float(torch.linalg.matrix_norm(problem.sigma_cross, ord="fro").item()),
+        "base_target_cross_fro_norm": float(torch.linalg.matrix_norm(problem.base_target_cross, ord="fro").item()),
+        "residual_term_fro_norm": float(
+            torch.linalg.matrix_norm(problem.residual_term, ord="fro").item()
+            if problem.residual_term is not None
+            else 0.0
+        ),
         "target_cross_fro_norm": float(torch.linalg.matrix_norm(problem.target_cross, ord="fro").item()),
         "target_y_fro_norm": float(torch.linalg.matrix_norm(problem.target_y, ord="fro").item()),
+        "target_y_min": float(problem.target_y.min().item()),
+        "target_y_max": float(problem.target_y.max().item()),
         "target_y_max_abs": float(problem.target_y.abs().max().item()),
         "cholesky_diag_min": float(torch.diag(problem.cholesky).min().item()),
         "cholesky_diag_max": float(torch.diag(problem.cholesky).max().item()),
@@ -268,6 +282,17 @@ def quantize_linear_layer(
             max((column.recursive_update_max_abs_error for column in search.quantization.columns), default=0.0)
         ),
         "residual_correction_applied": bool(problem.compensation_matrix is not None),
+        "residual_scale": float(config.residual_scale),
+        "residual_to_base_ratio": float(
+            torch.linalg.matrix_norm(problem.residual_term, ord="fro").item()
+            / max(torch.linalg.matrix_norm(problem.base_target_cross, ord="fro").item(), 1e-12)
+        )
+        if problem.residual_term is not None
+        else 0.0,
+        "combined_to_base_ratio": float(
+            torch.linalg.matrix_norm(problem.target_cross, ord="fro").item()
+            / max(torch.linalg.matrix_norm(problem.base_target_cross, ord="fro").item(), 1e-12)
+        ),
         "attention_weighting_requested": bool(config.use_attention_weighting),
         "attention_weighting_applied": bool(config.use_attention_weighting and is_attention_weighted_target(kind)),
         "reference_stats_available": bool(stats.sigma_x_hat is not None and stats.sigma_x_x_hat is not None),
