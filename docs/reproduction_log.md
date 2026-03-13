@@ -335,3 +335,7 @@
     - rescalers enabled
     - per-block adaptive mixing search enabled
     - `golden_section_iterations: 15`
+  - early runtime observation:
+    - the run confirmed the paper-aligned initial search step at layer 0:
+      - `Initial QKV rate-calibration at epsilon_qr=0 epsilon_aw=0 reached wo-input relative MSE 7.913040e-03`
+    - after that point, the first layer-0 search remained active long enough to classify this run as overnight-scale rather than a short follow-up

@@ -4,14 +4,15 @@
 
 1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the rescaler-enabled validation point, but it is still far from the paper’s `10.57` PPL point. Current best completed result: `15.7029` PPL at `2.9984` effective bits, an absolute gap of `+5.1329`.
 2. Full-model per-attention-block adaptive mixing search has been implemented in the general sequential pipeline, but its upgraded full-model run is not finished yet. Until that run lands, the best completed point still uses fixed `epsilon_qr` / `epsilon_aw` values.
-3. The full-model runs still use only `8` calibration chunks. This remains a likely quality limiter even after the major correctness bugs were fixed.
-4. The current WikiText-2 loader tokenizes the full concatenated split before chunking. It works, but it is inefficient and emits a long-sequence tokenizer warning.
+3. The adaptive-mixing full-model run is runtime-heavy at the paper-faithful `15`-step search setting. The first attention block completed the initial `epsilon_qr = 0`, `epsilon_aw = 0` rate-calibration step, but the subsequent search is already clearly overnight-scale rather than a short follow-up run.
+4. The full-model runs still use only `8` calibration chunks. This remains a likely quality limiter even after the major correctness bugs were fixed.
+5. The current WikiText-2 loader tokenizes the full concatenated split before chunking. It works, but it is inefficient and emits a long-sequence tokenizer warning.
 
 ## Implementation Gaps
 
 1. The repo now has a full-model `Llama-3.2-1B` result, but not yet a paper-matching one. The remaining work is quality recovery, not basic end-to-end execution.
 2. Diagonal rescalers are now validated on the full-model path and improve PPL, but they have not yet been combined with the new full-model adaptive-mixing search result.
-3. The upgraded general-pipeline adaptive-mixing search is in place, but the full-model benchmark for that upgraded path is still running.
+3. The upgraded general-pipeline adaptive-mixing search is in place, but the full-model benchmark for that upgraded path is still running and may require substantially more overnight runtime than the rescaler-only path.
 4. The full-model runs use only `8` calibration sequences as a runtime shortcut; this is smaller than a fully paper-faithful calibration budget.
 5. Qwen3-8B was intentionally not run in this round.
 
