@@ -1,0 +1,59 @@
+2026-03-13 13:39:23 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 13:39:23 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 13:39:50 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix collect layer 0 stage ['q_proj', 'k_proj', 'v_proj']
+2026-03-13 13:39:53 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 13:39:54 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 13:39:56 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 13:39:58 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 13:40:00 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 13:40:02 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 13:40:19 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.self_attn.q_proj at 3.0000 bits (achieved 2.8762)
+2026-03-13 13:40:27 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.self_attn.k_proj at 3.0077 bits (achieved 2.6968)
+2026-03-13 13:40:36 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.self_attn.v_proj at 3.0127 bits (achieved 2.6360)
+2026-03-13 13:40:36 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix collect layer 0 stage ['o_proj']
+2026-03-13 13:40:36 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 13:40:37 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 13:40:37 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 13:40:38 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 13:40:38 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 13:40:39 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 13:40:56 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.self_attn.o_proj at 3.0187 bits (achieved 2.8806)
+2026-03-13 13:40:56 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix collect layer 0 stage ['gate_proj', 'up_proj']
+2026-03-13 13:40:57 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 13:40:58 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 13:40:58 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 13:40:59 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 13:41:00 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 13:41:00 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 13:43:13 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.mlp.gate_proj at 3.0283 bits (achieved 2.9346)
+2026-03-13 13:45:27 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.mlp.up_proj at 3.0639 bits (achieved 2.9772)
+2026-03-13 13:45:27 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix collect layer 0 stage ['down_proj']
+2026-03-13 13:45:29 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 13:45:31 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 13:45:33 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 13:45:34 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 13:45:36 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 13:45:38 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 13:54:32 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.0.mlp.down_proj at 3.1173 bits (achieved 3.0271)
+2026-03-13 13:54:32 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix collect layer 1 stage ['q_proj', 'k_proj', 'v_proj']
+2026-03-13 13:54:34 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 0 for layer model.layers.1
+2026-03-13 13:54:36 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 1 for layer model.layers.1
+2026-03-13 13:54:38 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 2 for layer model.layers.1
+2026-03-13 13:54:40 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 3 for layer model.layers.1
+2026-03-13 13:54:42 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 4 for layer model.layers.1
+2026-03-13 13:54:45 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 5 for layer model.layers.1
+2026-03-13 13:54:58 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.1.self_attn.q_proj at 3.2617 bits (achieved 3.1064)
+2026-03-13 13:55:06 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.1.self_attn.k_proj at 3.3652 bits (achieved 2.9084)
+2026-03-13 13:55:14 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug prefix quantized model.layers.1.self_attn.v_proj at 3.4565 bits (achieved 3.0570)
+2026-03-13 13:55:15 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 0 for layer model.layers.1
+2026-03-13 13:55:15 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 1 for layer model.layers.1
+2026-03-13 13:55:16 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 2 for layer model.layers.1
+2026-03-13 13:55:17 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 3 for layer model.layers.1
+2026-03-13 13:55:18 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 4 for layer model.layers.1
+2026-03-13 13:55:19 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Collected calibration batch 5 for layer model.layers.1
+2026-03-13 13:55:21 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug sweep at residual_scale=0.00
+2026-03-13 13:55:41 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug sweep at residual_scale=0.25
+2026-03-13 13:56:01 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug sweep at residual_scale=0.50
+2026-03-13 13:56:21 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug sweep at residual_scale=0.75
+2026-03-13 13:56:41 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | Residual debug sweep at residual_scale=1.00
+2026-03-13 13:57:01 | INFO | debug_llama32_1b_layer1_o_proj_residual_debug | o_proj residual debug complete: /nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_layer1_o_proj_residual_debug/summary.md

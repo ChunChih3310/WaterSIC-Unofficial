@@ -124,3 +124,71 @@
   - conclusion:
     - the current residual-compensation implementation is the remaining blocker for broader sequential runs
     - the rest of the staged sequential path is now sane enough to continue debugging from a narrow, specific fault
+- Audited the paper’s residual-correction equation for `o_proj` and found the shared implementation bug:
+  - paper equation (18) uses `W Sigma_X,Xhat + Sigma_Delta,Xhat` before the triangular transform
+  - the old code incorrectly formed the residual addend via a solve against `Sigma_Xhat^{-1}`
+  - on `layer1 self_attn.o_proj`, that wrong formula inflated a tiny residual term into a huge transformed target
+- Added a dedicated layer1 residual debugger and config:
+  - script: `scripts/debug_o_proj_residual.py`
+  - config: `configs/debug/llama32_1b_layer1_o_proj_residual.yaml`
+  - saved outputs: `outputs/reports/llama32_1b_layer1_o_proj_residual_debug/`
+- Added a residual-path sanity test:
+  - `tests/test_residual.py`
+  - verifies that zero residual stream error reduces exactly to the no-residual path
+- Completed the narrow `layer1 self_attn.o_proj` audit with:
+  - `reference_stats: true`
+  - rescalers off
+  - stage timing: same-layer, post-QKV, pre-o_proj
+  - exact delta definition: `Delta = R - R_hat = reference_layer_input - quantized_layer_input`
+  - official vs manual collector checks:
+    - `Sigma_Delta,Xhat` mismatch: `0`
+    - `Sigma_Xhat` mismatch: `0`
+    - wrong-sign mismatch: `3.8401e-3`
+  - norm/conditioning diagnostics at the target module:
+    - `||W Sigma_X,Xhat||_F = 5.3348e-1`
+    - `||Sigma_Delta,Xhat||_F = 1.9200e-3`
+    - residual/base ratio at scale `1.0`: `3.5990e-3`
+    - `cond(Sigma_Xhat) = 6.5425e5`
+    - `cond(H after damping) = 5.4329e5`
+    - no dead features were pruned (`2048 -> 2048`)
+  - residual-strength sweep results:
+    - scale `0.00`: PPL `9.6219`, rel weight MSE `1.5426e-1`, `target_y_max_abs = 0.190427`
+    - scale `0.25`: PPL `9.6313`, rel weight MSE `1.5752e-1`
+    - scale `0.50`: PPL `9.6356`, rel weight MSE `1.6780e-1`
+    - scale `0.75`: PPL `9.6459`, rel weight MSE `1.8609e-1`
+    - scale `1.00`: PPL `9.6433`, rel weight MSE `2.1246e-1`, `target_y_max_abs = 0.190439`
+  - legacy-formula audit on the same statistics:
+    - legacy residual-term norm: `5.9003`
+    - legacy residual/base ratio: `11.0599`
+    - legacy `target_y_max_abs = 85.9470`
+  - diagnosis:
+    - timing is correct
+    - sign is correct
+    - the true bug was the wrong residual formula, and that wrong formula caused the scale blow-up
+- Reran the exact same `11`-module multi-layer smoke with residual correction re-enabled under the fixed formula:
+  - quant config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix_residfixed.yaml`
+  - eval config: `configs/eval/wikitext2_smoke8.yaml`
+  - saved outputs:
+    - `outputs/reports/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.md`
+    - `outputs/reports/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.json`
+  - result:
+    - achieved effective bitwidth: `2.9919`
+    - entropy bitwidth: `2.9786`
+    - Huffman bitwidth: `3.0343`
+    - side information: `0.0133`
+    - baseline small-eval PPL: `8.9880`
+    - quantized small-eval PPL: `9.6433`
+    - runtime: `993.99s`
+    - peak memory: `18.65 GiB`
+  - critical comparison at the old blocker:
+    - old residual-enabled run:
+      - `layer1 self_attn.o_proj` rel weight MSE: `4.0915e9`
+      - `target_y_max_abs = 85.9470`
+      - small-eval PPL: `700443.07`
+    - fixed residual-enabled run:
+      - `layer1 self_attn.o_proj` rel weight MSE: `2.1246e-1`
+      - `target_y_max_abs = 0.190439`
+      - small-eval PPL: `9.6433`
+  - conclusion:
+    - the residual-correction blocker at `model.layers.1.self_attn.o_proj` is fixed for the staged smoke path
+    - the next correct scope expansion is the fuller `Llama-3.2-1B` ~`3.0`-bit run, still with rescalers off

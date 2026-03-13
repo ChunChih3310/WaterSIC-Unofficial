@@ -1,0 +1,360 @@
+{
+  "baseline_small_eval_ppl": 8.98797788159514,
+  "config_audit": {
+    "calibration_batch_size": 1,
+    "calibration_num_sequences": 6,
+    "calibration_sequence_length": 2048,
+    "calibration_split": "train",
+    "legacy_ridge": 1e-06,
+    "probe_batch_size": 1,
+    "probe_num_sequences": 8,
+    "probe_sequence_length": 2048,
+    "probe_split": "test",
+    "reference_device": "cuda",
+    "reference_stats_requested": true,
+    "reference_stats_used": true,
+    "rescalers_enabled": false,
+    "residual_scales": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "git_commit": "2cd4111a008137dc73453c348ccc4a760a3e1188",
+  "manual_stats_audit": {
+    "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+    "sigma_x_hat_fro_norm": 0.5287819570282957,
+    "sigma_x_x_hat_fro_norm": 0.5301175935009717
+  },
+  "model_id": "meta-llama/Llama-3.2-1B",
+  "official_stats_audit": {
+    "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+    "sigma_x_hat_fro_norm": 0.5287819570282957,
+    "sigma_x_x_hat_fro_norm": 0.5301175935009717
+  },
+  "prefix_results": [
+    {
+      "achieved_rate": 2.876220625289072,
+      "kind": "q_proj",
+      "name": "model.layers.0.self_attn.q_proj",
+      "reference_delta_norm": 0.0,
+      "relative_weight_mse": 0.23005395846459323,
+      "target_rate": 3.0
+    },
+    {
+      "achieved_rate": 2.696775383030953,
+      "kind": "k_proj",
+      "name": "model.layers.0.self_attn.k_proj",
+      "reference_delta_norm": 0.0,
+      "relative_weight_mse": 0.3018563046040564,
+      "target_rate": 3.007736210919433
+    },
+    {
+      "achieved_rate": 2.6359633594088523,
+      "kind": "v_proj",
+      "name": "model.layers.0.self_attn.v_proj",
+      "reference_delta_norm": 0.0,
+      "relative_weight_mse": 0.3001824201038257,
+      "target_rate": 3.0126720970763934
+    },
+    {
+      "achieved_rate": 2.880636963651192,
+      "kind": "o_proj",
+      "name": "model.layers.0.self_attn.o_proj",
+      "reference_delta_norm": 0.011743708743452002,
+      "relative_weight_mse": 0.45759569639959474,
+      "target_rate": 3.0187480444581274
+    },
+    {
+      "achieved_rate": 2.9346393420947283,
+      "kind": "gate_proj",
+      "name": "model.layers.0.mlp.gate_proj",
+      "reference_delta_norm": 0.06803128013522104,
+      "relative_weight_mse": 0.06976335862901804,
+      "target_rate": 3.028272946582744
+    },
+    {
+      "achieved_rate": 2.977172908637001,
+      "kind": "up_proj",
+      "name": "model.layers.0.mlp.up_proj",
+      "reference_delta_norm": 0.06803128013522104,
+      "relative_weight_mse": 0.06519042829438751,
+      "target_rate": 3.063942891149607
+    },
+    {
+      "achieved_rate": 3.0271390281360504,
+      "kind": "down_proj",
+      "name": "model.layers.0.mlp.down_proj",
+      "reference_delta_norm": 0.04532951575536125,
+      "relative_weight_mse": 0.5588349912832588,
+      "target_rate": 3.1173398034650566
+    },
+    {
+      "achieved_rate": 3.106399216707049,
+      "kind": "q_proj",
+      "name": "model.layers.1.self_attn.q_proj",
+      "reference_delta_norm": 0.2907971821945578,
+      "relative_weight_mse": 0.05565570563235518,
+      "target_rate": 3.2616610439914657
+    },
+    {
+      "achieved_rate": 2.908427692734665,
+      "kind": "k_proj",
+      "name": "model.layers.1.self_attn.k_proj",
+      "reference_delta_norm": 0.2907971821945578,
+      "relative_weight_mse": 0.07743969640594256,
+      "target_rate": 3.365168928847744
+    },
+    {
+      "achieved_rate": 3.056984934548826,
+      "kind": "v_proj",
+      "name": "model.layers.1.self_attn.v_proj",
+      "reference_delta_norm": 0.2907971821945578,
+      "relative_weight_mse": 0.06151273806661382,
+      "target_rate": 3.45651717607036
+    }
+  ],
+  "residual_scale_sweep": [
+    {
+      "base_cross_fro_norm": 0.533484878637765,
+      "cholesky_diag_max": 0.08856454551327138,
+      "cholesky_diag_min": 0.0021751239154918743,
+      "combined_cross_fro_norm": 0.533484878637765,
+      "combined_to_base_ratio": 1.0,
+      "dead_features": {
+        "after": 2048,
+        "before": 2048,
+        "pruned": 0
+      },
+      "h_after_damping_condition_number": 543291.9099616919,
+      "legacy_formula_audit": {
+        "available": true,
+        "legacy_residual_term_fro_norm": 5.900265063893822,
+        "legacy_residual_to_base_ratio": 11.059854365431956,
+        "legacy_target_cross_fro_norm": 5.924399801165246,
+        "legacy_target_y_fro_norm": 2515.37401511576,
+        "legacy_target_y_max_abs": 85.94701095840078
+      },
+      "max_abs_weight_error": 0.19765991966002483,
+      "quantization": {
+        "alpha_max": 0.037238359754176775,
+        "alpha_min": 0.0009145651502593943,
+        "entropy_rate": 3.3992087547255734,
+        "gamma_max": 1.0,
+        "gamma_min": 0.7901523289051438,
+        "huffman_rate": 3.4454076290130615
+      },
+      "relative_weight_mse": 0.15425707686104176,
+      "residual_scale": 0.0,
+      "residual_to_base_ratio": 0.003599032302658159,
+      "scaled_residual_to_base_ratio": 0.0,
+      "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+      "sigma_x_hat_condition_number": 654245.0785103822,
+      "small_eval_ppl": 9.621866031620206,
+      "target_y": {
+        "fro_norm": 1.2179400609327793,
+        "max": 0.19042708055946692,
+        "max_abs": 0.19042708055946692,
+        "min": -0.13517325065194224
+      }
+    },
+    {
+      "base_cross_fro_norm": 0.533484878637765,
+      "cholesky_diag_max": 0.08856454551327138,
+      "cholesky_diag_min": 0.0021751239154918743,
+      "combined_cross_fro_norm": 0.5334988859035469,
+      "combined_to_base_ratio": 1.0000262561627196,
+      "dead_features": {
+        "after": 2048,
+        "before": 2048,
+        "pruned": 0
+      },
+      "h_after_damping_condition_number": 543291.9099616919,
+      "legacy_formula_audit": {
+        "available": true,
+        "legacy_residual_term_fro_norm": 5.900265063893822,
+        "legacy_residual_to_base_ratio": 11.059854365431956,
+        "legacy_target_cross_fro_norm": 5.924399801165246,
+        "legacy_target_y_fro_norm": 2515.37401511576,
+        "legacy_target_y_max_abs": 85.94701095840078
+      },
+      "max_abs_weight_error": 0.1801127405779592,
+      "quantization": {
+        "alpha_max": 0.037238359754176775,
+        "alpha_min": 0.0009145651502593943,
+        "entropy_rate": 3.400669370569679,
+        "gamma_max": 1.0,
+        "gamma_min": 0.7855004001053335,
+        "huffman_rate": 3.4468612670898438
+      },
+      "relative_weight_mse": 0.15751713369414988,
+      "residual_scale": 0.25,
+      "residual_to_base_ratio": 0.003599032302658159,
+      "scaled_residual_to_base_ratio": 0.0008997580756645397,
+      "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+      "sigma_x_hat_condition_number": 654245.0785103822,
+      "small_eval_ppl": 9.631278599612852,
+      "target_y": {
+        "fro_norm": 1.2180668892833941,
+        "max": 0.19043006403219184,
+        "max_abs": 0.19043006403219184,
+        "min": -0.13520711574350197
+      }
+    },
+    {
+      "base_cross_fro_norm": 0.533484878637765,
+      "cholesky_diag_max": 0.08856454551327138,
+      "cholesky_diag_min": 0.0021751239154918743,
+      "combined_cross_fro_norm": 0.5335133246691771,
+      "combined_to_base_ratio": 1.000053321157827,
+      "dead_features": {
+        "after": 2048,
+        "before": 2048,
+        "pruned": 0
+      },
+      "h_after_damping_condition_number": 543291.9099616919,
+      "legacy_formula_audit": {
+        "available": true,
+        "legacy_residual_term_fro_norm": 5.900265063893822,
+        "legacy_residual_to_base_ratio": 11.059854365431956,
+        "legacy_target_cross_fro_norm": 5.924399801165246,
+        "legacy_target_y_fro_norm": 2515.37401511576,
+        "legacy_target_y_max_abs": 85.94701095840078
+      },
+      "max_abs_weight_error": 0.1592578816058451,
+      "quantization": {
+        "alpha_max": 0.037238359754176775,
+        "alpha_min": 0.0009145651502593943,
+        "entropy_rate": 3.4045442217802493,
+        "gamma_max": 1.0,
+        "gamma_min": 0.7920272437356354,
+        "huffman_rate": 3.4505083560943604
+      },
+      "relative_weight_mse": 0.16779809693471653,
+      "residual_scale": 0.5,
+      "residual_to_base_ratio": 0.003599032302658159,
+      "scaled_residual_to_base_ratio": 0.0017995161513290794,
+      "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+      "sigma_x_hat_condition_number": 654245.0785103822,
+      "small_eval_ppl": 9.63561781577808,
+      "target_y": {
+        "fro_norm": 1.2182875204178318,
+        "max": 0.19043304750491677,
+        "max_abs": 0.19043304750491677,
+        "min": -0.13524098083506167
+      }
+    },
+    {
+      "base_cross_fro_norm": 0.533484878637765,
+      "cholesky_diag_max": 0.08856454551327138,
+      "cholesky_diag_min": 0.0021751239154918743,
+      "combined_cross_fro_norm": 0.5335281948996422,
+      "combined_to_base_ratio": 1.0000811949196908,
+      "dead_features": {
+        "after": 2048,
+        "before": 2048,
+        "pruned": 0
+      },
+      "h_after_damping_condition_number": 543291.9099616919,
+      "legacy_formula_audit": {
+        "available": true,
+        "legacy_residual_term_fro_norm": 5.900265063893822,
+        "legacy_residual_to_base_ratio": 11.059854365431956,
+        "legacy_target_cross_fro_norm": 5.924399801165246,
+        "legacy_target_y_fro_norm": 2515.37401511576,
+        "legacy_target_y_max_abs": 85.94701095840078
+      },
+      "max_abs_weight_error": 0.1898828238161093,
+      "quantization": {
+        "alpha_max": 0.037238359754176775,
+        "alpha_min": 0.0009145651502593943,
+        "entropy_rate": 3.410991136992943,
+        "gamma_max": 1.0,
+        "gamma_min": 0.7981660432458754,
+        "huffman_rate": 3.4570722579956055
+      },
+      "relative_weight_mse": 0.18608638972426214,
+      "residual_scale": 0.75,
+      "residual_to_base_ratio": 0.003599032302658159,
+      "scaled_residual_to_base_ratio": 0.002699274226993619,
+      "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+      "sigma_x_hat_condition_number": 654245.0785103822,
+      "small_eval_ppl": 9.645897297511059,
+      "target_y": {
+        "fro_norm": 1.2186019033863615,
+        "max": 0.19043603097764164,
+        "max_abs": 0.19043603097764164,
+        "min": -0.13527484592662145
+      }
+    },
+    {
+      "base_cross_fro_norm": 0.533484878637765,
+      "cholesky_diag_max": 0.08856454551327138,
+      "cholesky_diag_min": 0.0021751239154918743,
+      "combined_cross_fro_norm": 0.533543496558864,
+      "combined_to_base_ratio": 1.0001098773806836,
+      "dead_features": {
+        "after": 2048,
+        "before": 2048,
+        "pruned": 0
+      },
+      "h_after_damping_condition_number": 543291.9099616919,
+      "legacy_formula_audit": {
+        "available": true,
+        "legacy_residual_term_fro_norm": 5.900265063893822,
+        "legacy_residual_to_base_ratio": 11.059854365431956,
+        "legacy_target_cross_fro_norm": 5.924399801165246,
+        "legacy_target_y_fro_norm": 2515.37401511576,
+        "legacy_target_y_max_abs": 85.94701095840078
+      },
+      "max_abs_weight_error": 0.18994969147213236,
+      "quantization": {
+        "alpha_max": 0.037686879459445786,
+        "alpha_min": 0.0009255806862376579,
+        "entropy_rate": 3.402917465175531,
+        "gamma_max": 1.0,
+        "gamma_min": 0.8153502798000666,
+        "huffman_rate": 3.4490439891815186
+      },
+      "relative_weight_mse": 0.21245890680625673,
+      "residual_scale": 1.0,
+      "residual_to_base_ratio": 0.003599032302658159,
+      "scaled_residual_to_base_ratio": 0.003599032302658159,
+      "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+      "sigma_x_hat_condition_number": 654245.0785103822,
+      "small_eval_ppl": 9.643339152533386,
+      "target_y": {
+        "fro_norm": 1.2190099656531477,
+        "max": 0.1904390144503666,
+        "max_abs": 0.1904390144503666,
+        "min": -0.1353087110181812
+      }
+    }
+  ],
+  "run_name": "llama32_1b_layer1_o_proj_residual_debug",
+  "target": {
+    "kind": "o_proj",
+    "layer_index": 1,
+    "name": "model.layers.1.self_attn.o_proj",
+    "target_rate": 3.5564002364507434
+  },
+  "timestamp": "2026-03-13T05:57:00Z",
+  "timing_audit": {
+    "delta_definition": "Delta = R - R_hat = reference_layer_input - quantized_layer_input",
+    "layer_input_delta_fro_norm": 4.105417170546204,
+    "manual_sigma_delta_match_fro_norm": 0.0,
+    "manual_sigma_delta_wrong_sign_fro_norm": 0.003840058622393967,
+    "manual_sigma_x_hat_match_fro_norm": 0.0,
+    "o_proj_input_delta_fro_norm": 7.903087569884215,
+    "o_proj_weight_relative_mse_before_quantization": 0.0,
+    "qkv_weight_relative_mse_before_o_proj": {
+      "k_proj": 0.07743969640594256,
+      "q_proj": 0.05565570563235518,
+      "v_proj": 0.06151273806661382
+    },
+    "residual_target_kind_check": true,
+    "stage_timing": "same-layer, post-QKV, pre-o_proj"
+  }
+}

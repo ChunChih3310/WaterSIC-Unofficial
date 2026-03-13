@@ -1,0 +1,43 @@
+{
+  "base_cross_fro_norm": 0.533484878637765,
+  "cholesky_diag_max": 0.08856454551327138,
+  "cholesky_diag_min": 0.0021751239154918743,
+  "combined_cross_fro_norm": 0.533543496558864,
+  "combined_to_base_ratio": 1.0001098773806836,
+  "dead_features": {
+    "after": 2048,
+    "before": 2048,
+    "pruned": 0
+  },
+  "h_after_damping_condition_number": 543291.9099616919,
+  "legacy_formula_audit": {
+    "available": true,
+    "legacy_residual_term_fro_norm": 5.900265063893822,
+    "legacy_residual_to_base_ratio": 11.059854365431956,
+    "legacy_target_cross_fro_norm": 5.924399801165246,
+    "legacy_target_y_fro_norm": 2515.37401511576,
+    "legacy_target_y_max_abs": 85.94701095840078
+  },
+  "max_abs_weight_error": 0.18994969147213236,
+  "quantization": {
+    "alpha_max": 0.037686879459445786,
+    "alpha_min": 0.0009255806862376579,
+    "entropy_rate": 3.402917465175531,
+    "gamma_max": 1.0,
+    "gamma_min": 0.8153502798000666,
+    "huffman_rate": 3.4490439891815186
+  },
+  "relative_weight_mse": 0.21245890680625673,
+  "residual_scale": 1.0,
+  "residual_to_base_ratio": 0.003599032302658159,
+  "scaled_residual_to_base_ratio": 0.003599032302658159,
+  "sigma_delta_x_hat_fro_norm": 0.0019200293111969835,
+  "sigma_x_hat_condition_number": 654245.0785103822,
+  "small_eval_ppl": 9.643339152533386,
+  "target_y": {
+    "fro_norm": 1.2190099656531477,
+    "max": 0.1904390144503666,
+    "max_abs": 0.1904390144503666,
+    "min": -0.1353087110181812
+  }
+}
