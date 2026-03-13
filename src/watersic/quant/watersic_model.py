@@ -20,6 +20,7 @@ from watersic.stats.covariance import SecondMomentAccumulator
 from watersic.utils.io import save_json
 from watersic.utils.path_guard import ensure_parent_dir, repo_path
 
+from .attention_mixing import optimize_attention_stage_mixing
 from .watersic_layer import LayerQuantizationConfig, LayerQuantizationResult, LayerStatistics, quantize_linear_layer
 
 
@@ -230,6 +231,50 @@ def quantize_model_sequential(
                 reference_model=reference_model,
                 reference_device=reference_device,
             )
+            stage_remaining_budget = remaining_budget
+            stage_remaining_weights = remaining_weights
+            stage_layer_config = config.layer_config
+            mixing_audit: dict[str, Any] | None = None
+            if {spec.kind for spec in stage_specs} == {"q_proj", "k_proj", "v_proj"} and len(stage_specs) == 3:
+                by_kind = {spec.kind: spec for spec in layer_specs}
+                o_proj_spec = by_kind.get("o_proj")
+                if o_proj_spec is not None:
+                    best_qr, best_aw, mixing_audit = optimize_attention_stage_mixing(
+                        model,
+                        reference_model,
+                        stage_specs,
+                        o_proj_spec,
+                        stats_map,
+                        calibration_dataset,
+                        config.layer_config,
+                        stage_remaining_budget=stage_remaining_budget,
+                        stage_remaining_weights=stage_remaining_weights,
+                        calibration_batch_size=config.calibration_batch_size,
+                        device=device,
+                        reference_device=reference_device if reference_device is not None else device,
+                        logger=logger,
+                    )
+                    stage_layer_config = LayerQuantizationConfig(
+                        target_rate=config.layer_config.target_rate,
+                        damping=config.layer_config.damping,
+                        binary_search_iterations=config.layer_config.binary_search_iterations,
+                        row_sample_fraction=config.layer_config.row_sample_fraction,
+                        golden_section_iterations=config.layer_config.golden_section_iterations,
+                        dead_feature_tau=config.layer_config.dead_feature_tau,
+                        epsilon_qr=best_qr,
+                        epsilon_aw=best_aw,
+                        max_rescaler_iters=config.layer_config.max_rescaler_iters,
+                        rescaler_ridge=config.layer_config.rescaler_ridge,
+                        seed=config.layer_config.seed,
+                        use_lmmse=config.layer_config.use_lmmse,
+                        use_activation_drift=config.layer_config.use_activation_drift,
+                        use_residual_correction=config.layer_config.use_residual_correction,
+                        residual_scale=config.layer_config.residual_scale,
+                        use_attention_weighting=config.layer_config.use_attention_weighting,
+                        use_adaptive_mixing=config.layer_config.use_adaptive_mixing,
+                        optimize_adaptive_mixing=config.layer_config.optimize_adaptive_mixing,
+                        spacing_strategy=config.layer_config.spacing_strategy,
+                    )
             for spec in stage_specs:
                 module = model.get_submodule(spec.full_path)
                 original_weight = module.weight.detach().cpu().to(torch.float64)
@@ -237,23 +282,24 @@ def quantize_model_sequential(
                 target_rate = remaining_budget / max(remaining_weights, 1)
                 layer_config = LayerQuantizationConfig(
                     target_rate=target_rate,
-                    damping=config.layer_config.damping,
-                    binary_search_iterations=config.layer_config.binary_search_iterations,
-                    row_sample_fraction=config.layer_config.row_sample_fraction,
-                    golden_section_iterations=config.layer_config.golden_section_iterations,
-                    dead_feature_tau=config.layer_config.dead_feature_tau,
-                    epsilon_qr=config.layer_config.epsilon_qr,
-                    epsilon_aw=config.layer_config.epsilon_aw,
-                    max_rescaler_iters=config.layer_config.max_rescaler_iters,
-                    rescaler_ridge=config.layer_config.rescaler_ridge,
-                    seed=config.layer_config.seed,
-                    use_lmmse=config.layer_config.use_lmmse,
-                    use_activation_drift=config.layer_config.use_activation_drift,
-                    use_residual_correction=config.layer_config.use_residual_correction,
-                    residual_scale=config.layer_config.residual_scale,
-                    use_attention_weighting=config.layer_config.use_attention_weighting,
-                    use_adaptive_mixing=config.layer_config.use_adaptive_mixing,
-                    spacing_strategy=config.layer_config.spacing_strategy,
+                    damping=stage_layer_config.damping,
+                    binary_search_iterations=stage_layer_config.binary_search_iterations,
+                    row_sample_fraction=stage_layer_config.row_sample_fraction,
+                    golden_section_iterations=stage_layer_config.golden_section_iterations,
+                    dead_feature_tau=stage_layer_config.dead_feature_tau,
+                    epsilon_qr=stage_layer_config.epsilon_qr,
+                    epsilon_aw=stage_layer_config.epsilon_aw,
+                    max_rescaler_iters=stage_layer_config.max_rescaler_iters,
+                    rescaler_ridge=stage_layer_config.rescaler_ridge,
+                    seed=stage_layer_config.seed,
+                    use_lmmse=stage_layer_config.use_lmmse,
+                    use_activation_drift=stage_layer_config.use_activation_drift,
+                    use_residual_correction=stage_layer_config.use_residual_correction,
+                    residual_scale=stage_layer_config.residual_scale,
+                    use_attention_weighting=stage_layer_config.use_attention_weighting,
+                    use_adaptive_mixing=stage_layer_config.use_adaptive_mixing,
+                    optimize_adaptive_mixing=stage_layer_config.optimize_adaptive_mixing,
+                    spacing_strategy=stage_layer_config.spacing_strategy,
                 )
                 result = quantize_linear_layer(
                     original_weight,
@@ -328,6 +374,10 @@ def quantize_model_sequential(
                     "compensation_applied": bool(result.compensation_matrix is not None),
                     "damping_configured": float(layer_config.damping),
                     "damping_applied": float(result.applied_damping),
+                    "epsilon_qr": float(layer_config.epsilon_qr),
+                    "epsilon_aw": float(layer_config.epsilon_aw),
+                    "adaptive_mixing_optimized": bool(mixing_audit is not None and mixing_audit.get("enabled", False)),
+                    "adaptive_mixing_audit": mixing_audit,
                     "sigma_delta_x_hat_fro_norm": float(
                         torch.linalg.matrix_norm(stats_map[spec.full_path].sigma_delta_x_hat, ord="fro").item()
                     )

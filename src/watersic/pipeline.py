@@ -38,6 +38,7 @@ def build_layer_config(quant_config: dict) -> LayerQuantizationConfig:
         residual_scale=float(layer_cfg.get("residual_scale", 1.0)),
         use_attention_weighting=bool(layer_cfg.get("use_attention_weighting", True)),
         use_adaptive_mixing=bool(layer_cfg.get("use_adaptive_mixing", True)),
+        optimize_adaptive_mixing=bool(layer_cfg.get("optimize_adaptive_mixing", False)),
         spacing_strategy=str(layer_cfg.get("spacing_strategy", "watersic")),
     )
 

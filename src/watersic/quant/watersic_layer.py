@@ -35,6 +35,7 @@ class LayerQuantizationConfig:
     residual_scale: float = 1.0
     use_attention_weighting: bool = True
     use_adaptive_mixing: bool = True
+    optimize_adaptive_mixing: bool = False
     spacing_strategy: str = "watersic"
 
 
