@@ -1,0 +1,76 @@
+{
+  "debug_config": {
+    "calibration": {
+      "batch_size": 1,
+      "num_sequences": 8,
+      "sequence_length": 2048,
+      "split": "train"
+    },
+    "device": {
+      "override": null
+    },
+    "probe_eval": {
+      "batch_size": 1,
+      "num_sequences": 8,
+      "sequence_length": 2048,
+      "split": "test"
+    },
+    "quant": {
+      "binary_search_iterations": 12,
+      "damping": 0.0001,
+      "dead_feature_tau": 0.001,
+      "golden_section_iterations": 10,
+      "rescaler_ridge": 1e-06,
+      "row_sample_fraction": 0.1,
+      "seed": 0,
+      "target_bitwidth": 3.0
+    },
+    "reference_device": null,
+    "run_name": "llama32_1b_layer0_attention_refsafe_large",
+    "stages": [
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "Post-core-fix safe path",
+        "max_rescaler_iters": 0,
+        "name": "post_core_fix_safe_path",
+        "optimize_mixing": true,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      }
+    ]
+  },
+  "model_config": {
+    "architecture": "llama",
+    "attn_implementation": "eager",
+    "dtype": "bfloat16",
+    "model_id": "meta-llama/Llama-3.2-1B",
+    "model_revision": "main",
+    "tokenizer_id": "meta-llama/Llama-3.2-1B",
+    "tokenizer_revision": "main",
+    "trust_remote_code": false
+  },
+  "stage": {
+    "binary_search_iterations": 12,
+    "damping": 0.0001,
+    "dead_feature_tau": 0.001,
+    "epsilon_aw": 0.7983738762488434,
+    "epsilon_qr": 0.0031056200151418556,
+    "golden_section_iterations": 10,
+    "max_rescaler_iters": 0,
+    "rescaler_ridge": 1e-06,
+    "row_sample_fraction": 0.1,
+    "seed": 0,
+    "spacing_strategy": "watersic",
+    "target_rate": 3.0,
+    "use_activation_drift": true,
+    "use_adaptive_mixing": true,
+    "use_attention_weighting": true,
+    "use_lmmse": true,
+    "use_residual_correction": true
+  }
+}

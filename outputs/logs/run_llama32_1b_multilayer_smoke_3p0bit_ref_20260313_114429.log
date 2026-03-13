@@ -1,0 +1,31 @@
+2026-03-13 11:44:29 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 11:44:29 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 11:44:52 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Running BF16/FP baseline evaluation
+2026-03-13 11:44:54 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Loading reference model for original-vs-quantized statistics
+2026-03-13 11:44:57 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collecting statistics for layer 0
+2026-03-13 11:45:01 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 11:45:05 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 11:45:09 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 11:45:12 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 11:45:16 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 11:45:20 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 11:45:36 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.self_attn.q_proj with target 3.0000 and achieved 2.8762 (relMSE=2.300590e-01, ref_delta=0.000000e+00)
+2026-03-13 11:45:45 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.self_attn.k_proj with target 3.0044 and achieved 2.6968 (relMSE=3.019076e-01, ref_delta=0.000000e+00)
+2026-03-13 11:45:53 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.self_attn.v_proj with target 3.0072 and achieved 2.6283 (relMSE=3.040650e-01, ref_delta=0.000000e+00)
+2026-03-13 11:46:10 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.self_attn.o_proj with target 3.0106 and achieved 2.8743 (relMSE=3.476156e-01, ref_delta=0.000000e+00)
+2026-03-13 11:48:34 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.mlp.gate_proj with target 3.0158 and achieved 2.9239 (relMSE=6.507251e-02, ref_delta=0.000000e+00)
+2026-03-13 11:51:03 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.mlp.up_proj with target 3.0321 and achieved 2.9421 (relMSE=6.357328e-02, ref_delta=0.000000e+00)
+2026-03-13 12:01:09 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.0.mlp.down_proj with target 3.0516 and achieved 2.9568 (relMSE=3.577864e-01, ref_delta=0.000000e+00)
+2026-03-13 12:01:09 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Completed layer 0 in 971.85s
+2026-03-13 12:01:09 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collecting statistics for layer 1
+2026-03-13 12:01:14 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 0 for layer model.layers.1
+2026-03-13 12:01:18 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 1 for layer model.layers.1
+2026-03-13 12:01:22 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 2 for layer model.layers.1
+2026-03-13 12:01:26 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 3 for layer model.layers.1
+2026-03-13 12:01:30 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 4 for layer model.layers.1
+2026-03-13 12:01:34 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Collected calibration batch 5 for layer model.layers.1
+2026-03-13 12:01:55 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.1.self_attn.q_proj with target 3.0777 and achieved 2.9237 (relMSE=1.103064e-01, ref_delta=1.173851e+00)
+2026-03-13 12:02:05 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.1.self_attn.k_proj with target 3.0891 and achieved 2.6384 (relMSE=1.558549e-01, ref_delta=1.173851e+00)
+2026-03-13 12:02:15 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.1.self_attn.v_proj with target 3.0976 and achieved 2.7008 (relMSE=1.287726e-01, ref_delta=1.173851e+00)
+2026-03-13 12:02:41 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.1.self_attn.o_proj with target 3.1052 and achieved 2.9626 (relMSE=1.916954e+10, ref_delta=3.237236e-02)
+2026-03-13 12:05:00 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref | Quantized model.layers.1.mlp.gate_proj with target 3.1171 and achieved 3.0281 (relMSE=6.620455e-02, ref_delta=4.081230e-01)

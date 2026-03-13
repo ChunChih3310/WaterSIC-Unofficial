@@ -1,0 +1,170 @@
+{
+  "baseline_small_eval_ppl": 8.98797788159514,
+  "git_commit": "1d495d7207c3da085f65706fa229c0010787597b",
+  "model_id": "meta-llama/Llama-3.2-1B",
+  "model_revision": "main",
+  "run_name": "llama32_1b_layer0_attention_refsafe_large",
+  "stages": [
+    {
+      "bitrate": {
+        "entropy": 2.8086759199199065,
+        "huffman": 2.8561341898948465
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "Post-core-fix safe path",
+        "max_rescaler_iters": 0,
+        "name": "post_core_fix_safe_path",
+        "optimize_mixing": true,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 12,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.7983738762488434,
+        "epsilon_qr": 0.0031056200151418556,
+        "golden_section_iterations": 10,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.1,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "label": "Post-core-fix safe path",
+      "mixing_audit": {
+        "enabled": true,
+        "epsilon_aw": 0.7983738762488434,
+        "epsilon_aw_history": [
+          {
+            "objective": 0.007031088617958455,
+            "x": 0.3819660112501051
+          },
+          {
+            "objective": 0.006910272096109086,
+            "x": 0.6180339887498949
+          },
+          {
+            "objective": 0.0068718372948417174,
+            "x": 0.7639320225002103
+          },
+          {
+            "objective": 0.006926955021024337,
+            "x": 0.8541019662496846
+          },
+          {
+            "objective": 0.006876852738118839,
+            "x": 0.7082039324993692
+          },
+          {
+            "objective": 0.006823980298468323,
+            "x": 0.7983738762488434
+          },
+          {
+            "objective": 0.0068513696620211085,
+            "x": 0.8196601125010515
+          },
+          {
+            "objective": 0.0068871796113608025,
+            "x": 0.7852182587524185
+          },
+          {
+            "objective": 0.006845995021920773,
+            "x": 0.8065044950046267
+          },
+          {
+            "objective": 0.006857313449952546,
+            "x": 0.7933488775082018
+          },
+          {
+            "objective": 0.006875559061618251,
+            "x": 0.8014794962639852
+          },
+          {
+            "objective": 0.006880559477782779,
+            "x": 0.7964544975233436
+          }
+        ],
+        "epsilon_aw_objective": 0.006823980298468323,
+        "epsilon_qr": 0.0031056200151418556,
+        "epsilon_qr_history": [
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.3819660112501051
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.6180339887498949
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.2360679774997897
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.1458980337503154
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.09016994374947424
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.05572809000084118
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.03444185374863302
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.02128623625220817
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.013155617496424833
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.008130618755783341
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.005024998740641487
+          },
+          {
+            "objective": 0.007968461539816058,
+            "x": 0.0031056200151418556
+          }
+        ],
+        "epsilon_qr_objective": 0.007968461539816058,
+        "objective": "Relative MSE at the layer-0 o_proj input after quantizing q_proj/k_proj/v_proj."
+      },
+      "name": "post_core_fix_safe_path",
+      "relative_mse": {
+        "aggregate": 0.0005742931110850673,
+        "by_kind": {
+          "k_proj": 0.0009624289321432667,
+          "o_proj": 0.012178464233225368,
+          "q_proj": 0.00045976451540652175,
+          "v_proj": 0.01909850973308926
+        }
+      },
+      "small_eval_ppl": 9.013773702775277
+    }
+  ],
+  "summary_markdown_path": "/nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_layer0_attention_refsafe_large/summary.md",
+  "timestamp": "2026-03-13T03:26:38Z"
+}

@@ -73,3 +73,54 @@
   - after the two core math fixes, no stage in `A` through `H` became unstable on the small layer-0 attention debug ladder
   - the earlier catastrophic behavior was caused by shared core math, not by QKV-specific WaterSIC extras
   - residual correction is a no-op in this exact layer-0-only setup, as expected
+- Ran a larger layer-0 attention validation with `reference_stats` active and rescalers still off:
+  - config: `configs/debug/llama32_1b_layer0_attention_refsafe_large.yaml`
+  - calibration: `8` train chunks
+  - probe eval: `8` test chunks
+  - baseline small-eval PPL: `8.9880`
+  - quantized small-eval PPL: `9.0138`
+  - optimized mixing:
+    - `epsilon_qr = 0.0031056200151418556`
+    - `epsilon_aw = 0.7983738762488434`
+  - conclusion:
+    - the fixed path stayed numerically sane at larger layer-0 scope
+    - `reference_stats` were effective for `o_proj`
+    - no NaN/Inf or Cholesky failures were observed
+- Reran multi-layer smoke quantization for the first `11` modules of `Llama-3.2-1B` with:
+  - `reference_stats: true`
+  - staged same-layer stat refresh (`qkv -> o_proj -> gate/up -> down_proj`)
+  - rescalers off
+  - config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix.yaml`
+  - eval config: `configs/eval/wikitext2_smoke8.yaml`
+  - result:
+    - achieved effective bitwidth: `2.9912`
+    - entropy bitwidth: `2.9779`
+    - Huffman bitwidth: `3.0340`
+    - quantized small-eval PPL: `700443.0656`
+  - first new blocker:
+    - `model.layers.1.self_attn.o_proj`
+    - relative weight MSE: `4.0915395089e9`
+    - `reference_stats_delta_norm = 3.0349e-2`
+    - `target_y_max_abs = 85.9470`
+    - `alpha` range: `[10.6854, 435.0766]`
+  - diagnosis:
+    - shared core math remains sane
+    - same-layer stat refresh alone was not enough
+    - the next true blocker lies on the residual-correction path for `o_proj`
+- Ran a controlled ablation with the same staged-refresh path but `use_residual_correction: false`:
+  - config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix_noresid.yaml`
+  - result:
+    - achieved effective bitwidth: `2.9917`
+    - entropy bitwidth: `2.9784`
+    - Huffman bitwidth: `3.0341`
+    - quantized small-eval PPL: `9.6219`
+  - critical comparison at `model.layers.1.self_attn.o_proj`:
+    - with residual correction:
+      - relative weight MSE: `4.0915395089e9`
+      - `target_y_max_abs = 85.9470`
+    - without residual correction:
+      - relative weight MSE: `1.5426e-1`
+      - `target_y_max_abs = 0.1904`
+  - conclusion:
+    - the current residual-compensation implementation is the remaining blocker for broader sequential runs
+    - the rest of the staged sequential path is now sane enough to continue debugging from a narrow, specific fault

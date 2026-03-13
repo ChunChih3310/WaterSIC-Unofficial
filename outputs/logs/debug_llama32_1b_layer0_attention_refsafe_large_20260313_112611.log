@@ -1,0 +1,24 @@
+2026-03-13 11:26:11 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 11:26:11 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 11:26:37 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Running baseline small-eval perplexity for layer-0 attention debug
+2026-03-13 11:26:38 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Starting debug stage Post-core-fix safe path
+2026-03-13 11:26:41 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 11:26:42 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 11:26:44 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 11:26:46 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 11:26:48 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 11:26:50 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 11:26:52 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 6 for layer model.layers.0
+2026-03-13 11:26:54 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 7 for layer model.layers.0
+2026-03-13 11:34:30 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Selected epsilon_qr=0.003106 with wo-input relative MSE 7.968462e-03
+2026-03-13 11:42:02 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Selected epsilon_aw=0.798374 with wo-input relative MSE 6.823980e-03
+2026-03-13 11:42:40 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 11:42:41 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 11:42:41 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 11:42:42 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 11:42:42 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 11:42:43 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 11:42:44 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 6 for layer model.layers.0
+2026-03-13 11:42:44 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Collected calibration batch 7 for layer model.layers.0
+2026-03-13 11:43:14 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Completed debug stage Post-core-fix safe path with small-eval PPL 9.0138
+2026-03-13 11:43:14 | INFO | debug_llama32_1b_layer0_attention_refsafe_large | Layer-0 attention debug complete: /nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_layer0_attention_refsafe_large/summary.md

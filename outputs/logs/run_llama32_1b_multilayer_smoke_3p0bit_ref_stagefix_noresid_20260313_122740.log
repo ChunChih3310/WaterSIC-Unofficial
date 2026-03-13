@@ -1,0 +1,61 @@
+2026-03-13 12:27:40 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 12:27:40 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 12:28:02 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Running BF16/FP baseline evaluation
+2026-03-13 12:28:04 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Loading reference model for original-vs-quantized statistics
+2026-03-13 12:28:07 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collecting statistics for layer 0 stage ['q_proj', 'k_proj', 'v_proj']
+2026-03-13 12:28:09 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 12:28:11 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 12:28:13 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 12:28:15 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 12:28:17 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 12:28:19 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 12:28:35 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.self_attn.q_proj with target 3.0000 and achieved 2.8762 (relMSE=2.300590e-01, ref_delta=0.000000e+00)
+2026-03-13 12:28:43 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.self_attn.k_proj with target 3.0077 and achieved 2.6968 (relMSE=3.019076e-01, ref_delta=0.000000e+00)
+2026-03-13 12:28:52 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.self_attn.v_proj with target 3.0127 and achieved 2.6360 (relMSE=3.001497e-01, ref_delta=0.000000e+00)
+2026-03-13 12:28:52 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collecting statistics for layer 0 stage ['o_proj']
+2026-03-13 12:28:52 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 12:28:53 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 12:28:53 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 12:28:54 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 12:28:54 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 12:28:55 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 12:29:12 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.self_attn.o_proj with target 3.0187 and achieved 2.8806 (relMSE=4.575867e-01, ref_delta=1.174371e-02)
+2026-03-13 12:29:12 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collecting statistics for layer 0 stage ['gate_proj', 'up_proj']
+2026-03-13 12:29:12 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 12:29:13 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 12:29:14 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 12:29:14 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 12:29:15 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 12:29:15 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 12:31:17 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.mlp.gate_proj with target 3.0283 and achieved 2.9346 (relMSE=6.975629e-02, ref_delta=6.803128e-02)
+2026-03-13 12:33:29 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.mlp.up_proj with target 3.0639 and achieved 2.9772 (relMSE=6.519080e-02, ref_delta=6.803128e-02)
+2026-03-13 12:33:29 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collecting statistics for layer 0 stage ['down_proj']
+2026-03-13 12:33:31 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 12:33:33 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 12:33:34 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 12:33:36 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 12:33:38 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 4 for layer model.layers.0
+2026-03-13 12:33:40 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 5 for layer model.layers.0
+2026-03-13 12:42:11 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.0.mlp.down_proj with target 3.1173 and achieved 3.0271 (relMSE=5.588405e-01, ref_delta=4.532952e-02)
+2026-03-13 12:42:11 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Completed layer 0 in 844.02s
+2026-03-13 12:42:11 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collecting statistics for layer 1 stage ['q_proj', 'k_proj', 'v_proj']
+2026-03-13 12:42:13 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 0 for layer model.layers.1
+2026-03-13 12:42:15 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 1 for layer model.layers.1
+2026-03-13 12:42:17 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 2 for layer model.layers.1
+2026-03-13 12:42:19 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 3 for layer model.layers.1
+2026-03-13 12:42:21 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 4 for layer model.layers.1
+2026-03-13 12:42:23 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 5 for layer model.layers.1
+2026-03-13 12:42:39 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.1.self_attn.q_proj with target 3.2617 and achieved 3.1064 (relMSE=5.565145e-02, ref_delta=2.907972e-01)
+2026-03-13 12:42:47 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.1.self_attn.k_proj with target 3.3652 and achieved 2.9084 (relMSE=7.743903e-02, ref_delta=2.907972e-01)
+2026-03-13 12:42:56 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.1.self_attn.v_proj with target 3.4565 and achieved 3.0570 (relMSE=6.150943e-02, ref_delta=2.907972e-01)
+2026-03-13 12:42:56 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collecting statistics for layer 1 stage ['o_proj']
+2026-03-13 12:42:56 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 0 for layer model.layers.1
+2026-03-13 12:42:57 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 1 for layer model.layers.1
+2026-03-13 12:42:57 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 2 for layer model.layers.1
+2026-03-13 12:42:58 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 3 for layer model.layers.1
+2026-03-13 12:42:58 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 4 for layer model.layers.1
+2026-03-13 12:42:59 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Collected calibration batch 5 for layer model.layers.1
+2026-03-13 12:43:16 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Quantized model.layers.1.self_attn.o_proj with target 3.5564 and achieved 3.4153 (relMSE=1.542571e-01, ref_delta=3.034903e-02)
+2026-03-13 12:43:16 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Completed layer 1 in 65.14s
+2026-03-13 12:43:40 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Running quantized evaluation
+2026-03-13 12:43:41 | INFO | run_llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid | Experiment complete: {'artifact_dir': PosixPath('/nfs_tmp/Compression_team/src/WaterSIC/outputs/quantized/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid'), 'report_json_path': PosixPath('/nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid.json'), 'report_md_path': PosixPath('/nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_noresid.md'), 'baseline_perplexity': 8.98797788159514, 'quantized_perplexity': 9.621866031620206}
