@@ -1,0 +1,30 @@
+run_name: llama32_1b_full_3p0bit_refsafe
+target_global_bitwidth: 3.0
+reference_stats: true
+reference_device: cuda
+max_layers:
+max_modules:
+device:
+  override:
+calibration:
+  split: train
+  sequence_length: 2048
+  num_sequences: 8
+  batch_size: 1
+layer:
+  damping: 1.0e-4
+  binary_search_iterations: 30
+  row_sample_fraction: 0.1
+  golden_section_iterations: 10
+  dead_feature_tau: 1.0e-3
+  epsilon_qr: 0.0031056200151418556
+  epsilon_aw: 0.7983738762488434
+  max_rescaler_iters: 0
+  rescaler_ridge: 1.0e-6
+  seed: 0
+  use_lmmse: true
+  use_activation_drift: true
+  use_residual_correction: true
+  use_attention_weighting: true
+  use_adaptive_mixing: true
+  spacing_strategy: watersic

@@ -1,0 +1,36 @@
+run_name: llama32_1b_layer0_attention_refsafe_large
+reference_device:
+device:
+  override:
+calibration:
+  split: train
+  sequence_length: 2048
+  num_sequences: 8
+  batch_size: 1
+probe_eval:
+  split: test
+  sequence_length: 2048
+  num_sequences: 8
+  batch_size: 1
+quant:
+  target_bitwidth: 3.0
+  damping: 1.0e-4
+  binary_search_iterations: 12
+  row_sample_fraction: 0.1
+  golden_section_iterations: 10
+  dead_feature_tau: 1.0e-3
+  rescaler_ridge: 1.0e-6
+  seed: 0
+stages:
+  - name: post_core_fix_safe_path
+    label: Post-core-fix safe path
+    spacing_strategy: watersic
+    use_lmmse: true
+    use_activation_drift: true
+    use_residual_correction: true
+    use_attention_weighting: true
+    use_adaptive_mixing: true
+    optimize_mixing: true
+    epsilon_qr: 0.0
+    epsilon_aw: 0.0
+    max_rescaler_iters: 0
