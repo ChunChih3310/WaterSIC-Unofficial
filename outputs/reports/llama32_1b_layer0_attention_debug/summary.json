@@ -1,0 +1,573 @@
+{
+  "baseline_small_eval_ppl": 10.810098423800328,
+  "git_commit": "8a224980eacfa14d2ebb750153af54c9bd673371",
+  "model_id": "meta-llama/Llama-3.2-1B",
+  "model_revision": "main",
+  "run_name": "llama32_1b_layer0_attention_debug",
+  "stages": [
+    {
+      "bitrate": {
+        "entropy": 2.915389231660023,
+        "huffman": 2.9647069536036557
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "A. HPTQ-equivalent",
+        "max_rescaler_iters": 0,
+        "name": "a_hptq_equivalent",
+        "optimize_mixing": false,
+        "spacing_strategy": "uniform_alpha",
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": false,
+        "use_residual_correction": false
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "uniform_alpha",
+        "target_rate": 3.0,
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": false,
+        "use_residual_correction": false
+      },
+      "label": "A. HPTQ-equivalent",
+      "mixing_audit": {
+        "enabled": false
+      },
+      "name": "a_hptq_equivalent",
+      "relative_mse": {
+        "aggregate": 0.0011721972831594506,
+        "by_kind": {
+          "k_proj": 0.00185869723060273,
+          "o_proj": 0.020699500848998957,
+          "q_proj": 0.0009671340875136718,
+          "v_proj": 0.03544311932766564
+        }
+      },
+      "small_eval_ppl": 10.823762381845802
+    },
+    {
+      "bitrate": {
+        "entropy": 2.887827663950683,
+        "huffman": 2.934340652754954
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "B. PlainWaterSIC",
+        "max_rescaler_iters": 0,
+        "name": "b_plain_watersic",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": false,
+        "use_residual_correction": false
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": false,
+        "use_residual_correction": false
+      },
+      "label": "B. PlainWaterSIC",
+      "mixing_audit": {
+        "enabled": false
+      },
+      "name": "b_plain_watersic",
+      "relative_mse": {
+        "aggregate": 0.0028651223676236038,
+        "by_kind": {
+          "k_proj": 0.0045606035817073965,
+          "o_proj": 0.040874138701588326,
+          "q_proj": 0.002365426944053867,
+          "v_proj": 0.07628838410707399
+        }
+      },
+      "small_eval_ppl": 10.860060667601516
+    },
+    {
+      "bitrate": {
+        "entropy": 2.8542052174963053,
+        "huffman": 2.900198023966297
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "C. + LMMSE",
+        "max_rescaler_iters": 0,
+        "name": "c_plus_lmmse",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": false
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": false
+      },
+      "label": "C. + LMMSE",
+      "mixing_audit": {
+        "enabled": false
+      },
+      "name": "c_plus_lmmse",
+      "relative_mse": {
+        "aggregate": 0.001989585682817203,
+        "by_kind": {
+          "k_proj": 0.0029038428926324573,
+          "o_proj": 0.026458023565895394,
+          "q_proj": 0.0017146350639787359,
+          "v_proj": 0.05149671701715609
+        }
+      },
+      "small_eval_ppl": 10.866576826476326
+    },
+    {
+      "bitrate": {
+        "entropy": 2.8683614004583,
+        "huffman": 2.917010253122791
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "D. + activation drift correction",
+        "max_rescaler_iters": 0,
+        "name": "d_plus_activation_drift",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": false
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": false
+      },
+      "label": "D. + activation drift correction",
+      "mixing_audit": {
+        "enabled": false
+      },
+      "name": "d_plus_activation_drift",
+      "relative_mse": {
+        "aggregate": 0.001989746854915856,
+        "by_kind": {
+          "k_proj": 0.0029038428926324573,
+          "o_proj": 0.02863909413265458,
+          "q_proj": 0.0017146350639787359,
+          "v_proj": 0.05149671701715609
+        }
+      },
+      "small_eval_ppl": 10.869144606475087
+    },
+    {
+      "bitrate": {
+        "entropy": 2.8683614004583,
+        "huffman": 2.917010253122791
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "E. + residual correction",
+        "max_rescaler_iters": 0,
+        "name": "e_plus_residual_correction",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "label": "E. + residual correction",
+      "mixing_audit": {
+        "enabled": false
+      },
+      "name": "e_plus_residual_correction",
+      "relative_mse": {
+        "aggregate": 0.001989746854915856,
+        "by_kind": {
+          "k_proj": 0.0029038428926324573,
+          "o_proj": 0.02863909413265458,
+          "q_proj": 0.0017146350639787359,
+          "v_proj": 0.05149671701715609
+        }
+      },
+      "small_eval_ppl": 10.869144606475087
+    },
+    {
+      "bitrate": {
+        "entropy": 2.8574224840361913,
+        "huffman": 2.9055260320630807
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "F. + attention weighting",
+        "max_rescaler_iters": 0,
+        "name": "f_plus_attention_weighting",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "label": "F. + attention weighting",
+      "mixing_audit": {
+        "enabled": false
+      },
+      "name": "f_plus_attention_weighting",
+      "relative_mse": {
+        "aggregate": 0.002263175332808825,
+        "by_kind": {
+          "k_proj": 0.0033066461837575607,
+          "o_proj": 0.031131391271657486,
+          "q_proj": 0.0019505289904644554,
+          "v_proj": 0.05634556691494162
+        }
+      },
+      "small_eval_ppl": 10.871170302942474
+    },
+    {
+      "bitrate": {
+        "entropy": 2.863269883075881,
+        "huffman": 2.9142858298658454
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "G. + adaptive mixing",
+        "max_rescaler_iters": 0,
+        "name": "g_plus_adaptive_mixing",
+        "optimize_mixing": true,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.3819660112501051,
+        "epsilon_qr": 0.03444185374863302,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 0,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "label": "G. + adaptive mixing",
+      "mixing_audit": {
+        "enabled": true,
+        "epsilon_aw": 0.3819660112501051,
+        "epsilon_aw_history": [
+          {
+            "objective": 0.004405596599072046,
+            "x": 0.3819660112501051
+          },
+          {
+            "objective": 0.004422312843451846,
+            "x": 0.6180339887498949
+          },
+          {
+            "objective": 0.0046070782142420405,
+            "x": 0.2360679774997897
+          },
+          {
+            "objective": 0.004440443064297507,
+            "x": 0.47213595499957944
+          },
+          {
+            "objective": 0.004410458891499498,
+            "x": 0.32623792124926393
+          },
+          {
+            "objective": 0.004500980688946057,
+            "x": 0.4164078649987382
+          },
+          {
+            "objective": 0.0044322049033495,
+            "x": 0.36067977499789694
+          }
+        ],
+        "epsilon_aw_objective": 0.004405596599072046,
+        "epsilon_qr": 0.03444185374863302,
+        "epsilon_qr_history": [
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.3819660112501051
+          },
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.6180339887498949
+          },
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.2360679774997897
+          },
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.1458980337503154
+          },
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.09016994374947424
+          },
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.05572809000084118
+          },
+          {
+            "objective": 0.005066290479455096,
+            "x": 0.03444185374863302
+          }
+        ],
+        "epsilon_qr_objective": 0.005066290479455096,
+        "objective": "Relative MSE at the layer-0 o_proj input after quantizing q_proj/k_proj/v_proj."
+      },
+      "name": "g_plus_adaptive_mixing",
+      "relative_mse": {
+        "aggregate": 0.002045592820645864,
+        "by_kind": {
+          "k_proj": 0.002861397885089579,
+          "o_proj": 0.028477375093911832,
+          "q_proj": 0.0017966996165410837,
+          "v_proj": 0.052254417707727555
+        }
+      },
+      "small_eval_ppl": 10.874368192238617
+    },
+    {
+      "bitrate": {
+        "entropy": 2.897204256732524,
+        "huffman": 2.947964357502012
+      },
+      "config": {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "H. + diagonal rescalers",
+        "max_rescaler_iters": 4,
+        "name": "h_plus_diagonal_rescalers",
+        "optimize_mixing": true,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "effective_layer_config": {
+        "binary_search_iterations": 8,
+        "damping": 0.0001,
+        "dead_feature_tau": 0.001,
+        "epsilon_aw": 0.32623792124926393,
+        "epsilon_qr": 0.03444185374863302,
+        "golden_section_iterations": 5,
+        "max_rescaler_iters": 4,
+        "rescaler_ridge": 1e-06,
+        "row_sample_fraction": 0.25,
+        "seed": 0,
+        "spacing_strategy": "watersic",
+        "target_rate": 3.0,
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      "label": "H. + diagonal rescalers",
+      "mixing_audit": {
+        "enabled": true,
+        "epsilon_aw": 0.32623792124926393,
+        "epsilon_aw_history": [
+          {
+            "objective": 0.004382792494251977,
+            "x": 0.3819660112501051
+          },
+          {
+            "objective": 0.004390000866552302,
+            "x": 0.6180339887498949
+          },
+          {
+            "objective": 0.00457626912705817,
+            "x": 0.2360679774997897
+          },
+          {
+            "objective": 0.004411718448661455,
+            "x": 0.47213595499957944
+          },
+          {
+            "objective": 0.004380567481687037,
+            "x": 0.32623792124926393
+          },
+          {
+            "objective": 0.004431780977458629,
+            "x": 0.29179606750063086
+          },
+          {
+            "objective": 0.004421968043182415,
+            "x": 0.3475241575014721
+          }
+        ],
+        "epsilon_aw_objective": 0.004380567481687037,
+        "epsilon_qr": 0.03444185374863302,
+        "epsilon_qr_history": [
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.3819660112501051
+          },
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.6180339887498949
+          },
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.2360679774997897
+          },
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.1458980337503154
+          },
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.09016994374947424
+          },
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.05572809000084118
+          },
+          {
+            "objective": 0.005054497918035753,
+            "x": 0.03444185374863302
+          }
+        ],
+        "epsilon_qr_objective": 0.005054497918035753,
+        "objective": "Relative MSE at the layer-0 o_proj input after quantizing q_proj/k_proj/v_proj."
+      },
+      "name": "h_plus_diagonal_rescalers",
+      "relative_mse": {
+        "aggregate": 0.0019281477506450765,
+        "by_kind": {
+          "k_proj": 0.0030049408671511406,
+          "o_proj": 0.028380743014059844,
+          "q_proj": 0.0016085002061024252,
+          "v_proj": 0.052574158349679115
+        }
+      },
+      "small_eval_ppl": 10.892464383574552
+    }
+  ],
+  "summary_markdown_path": "outputs/reports/llama32_1b_layer0_attention_debug/summary.md",
+  "timestamp": "2026-03-13T02:22:44Z"
+}

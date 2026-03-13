@@ -1,0 +1,88 @@
+2026-03-13 10:22:17 | INFO | debug_llama32_1b_layer0_attention_debug | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 10:22:17 | INFO | debug_llama32_1b_layer0_attention_debug | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 10:22:43 | INFO | debug_llama32_1b_layer0_attention_debug | Running baseline small-eval perplexity for layer-0 attention debug
+2026-03-13 10:22:44 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage A. HPTQ-equivalent
+2026-03-13 10:22:47 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:22:49 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:22:51 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:22:53 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:23:33 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:23:33 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:23:34 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:23:35 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:24:01 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage A. HPTQ-equivalent with small-eval PPL 10.8238
+2026-03-13 10:24:01 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage B. PlainWaterSIC
+2026-03-13 10:24:04 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:24:06 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:24:08 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:24:10 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:24:45 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:24:45 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:24:46 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:24:47 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:25:09 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage B. PlainWaterSIC with small-eval PPL 10.8601
+2026-03-13 10:25:09 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage C. + LMMSE
+2026-03-13 10:25:12 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:25:14 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:25:17 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:25:18 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:25:54 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:25:55 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:25:56 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:25:56 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:26:18 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage C. + LMMSE with small-eval PPL 10.8666
+2026-03-13 10:26:18 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage D. + activation drift correction
+2026-03-13 10:26:21 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:26:23 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:26:24 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:26:26 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:27:01 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:27:02 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:27:02 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:27:03 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:27:24 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage D. + activation drift correction with small-eval PPL 10.8691
+2026-03-13 10:27:24 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage E. + residual correction
+2026-03-13 10:27:26 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:27:28 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:27:30 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:27:32 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:28:06 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:28:07 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:28:08 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:28:08 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:28:31 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage E. + residual correction with small-eval PPL 10.8691
+2026-03-13 10:28:31 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage F. + attention weighting
+2026-03-13 10:28:34 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:28:36 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:28:38 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:28:40 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:29:15 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:29:16 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:29:16 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:29:17 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:29:40 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage F. + attention weighting with small-eval PPL 10.8712
+2026-03-13 10:29:40 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage G. + adaptive mixing
+2026-03-13 10:29:42 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:29:44 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:29:46 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:29:48 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:33:53 | INFO | debug_llama32_1b_layer0_attention_debug | Selected epsilon_qr=0.034442 with wo-input relative MSE 5.066290e-03
+2026-03-13 10:37:44 | INFO | debug_llama32_1b_layer0_attention_debug | Selected epsilon_aw=0.381966 with wo-input relative MSE 4.405597e-03
+2026-03-13 10:38:19 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:38:20 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:38:20 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:38:21 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:38:45 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage G. + adaptive mixing with small-eval PPL 10.8744
+2026-03-13 10:38:45 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage H. + diagonal rescalers
+2026-03-13 10:38:48 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:38:50 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:38:52 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:38:54 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:43:03 | INFO | debug_llama32_1b_layer0_attention_debug | Selected epsilon_qr=0.034442 with wo-input relative MSE 5.054498e-03
+2026-03-13 10:47:14 | INFO | debug_llama32_1b_layer0_attention_debug | Selected epsilon_aw=0.326238 with wo-input relative MSE 4.380567e-03
+2026-03-13 10:47:51 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:47:51 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:47:52 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:47:52 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0
+2026-03-13 10:48:15 | INFO | debug_llama32_1b_layer0_attention_debug | Completed debug stage H. + diagonal rescalers with small-eval PPL 10.8925
+2026-03-13 10:48:17 | INFO | debug_llama32_1b_layer0_attention_debug | Layer-0 attention debug complete: /nfs_tmp/Compression_team/src/WaterSIC/outputs/reports/llama32_1b_layer0_attention_debug/summary.md

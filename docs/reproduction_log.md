@@ -46,3 +46,30 @@
   - the current implementation is not yet numerically faithful for Q/K projections
   - disabling attention weighting improves the Q/K transformed error by about 2.5-3x but does not restore usable perplexity
 - Qwen3-8B was configured but not run yet.
+- Started a strict staged correctness-debug campaign focused only on `Llama-3.2-1B` layer-0 attention (`q_proj`, `k_proj`, `v_proj`, `o_proj`).
+- Found and fixed a core ZSIC bug:
+  - the recursive update had been subtracting `c * z_i * L_i,:`
+  - the correct update is `alpha_i * z_i * L_i,:`
+- Found and fixed a second core transformed-objective bug:
+  - the triangular solve for `Y` had been computing `target_cross @ L^(-1)`
+  - the correct quantity is `target_cross @ (L^T)^(-1)`
+- Found and fixed a runtime bug in calibration-stat collection:
+  - paired-model attention-stat forwards were missing `torch.no_grad()`
+  - this caused unnecessary memory growth and OOM during the layer-0 debug run
+- Added unit coverage for:
+  - the corrected ZSIC recursive update
+  - the corrected plain-WaterSIC `Y = W L` construction
+- Completed the staged layer-0 attention debug ladder under `outputs/reports/llama32_1b_layer0_attention_debug/`:
+  - baseline small-eval PPL: `10.8101`
+  - `A. HPTQ-equivalent`: `10.8238`
+  - `B. PlainWaterSIC`: `10.8601`
+  - `C. + LMMSE`: `10.8666`
+  - `D. + activation drift correction`: `10.8691`
+  - `E. + residual correction`: `10.8691`
+  - `F. + attention weighting`: `10.8712`
+  - `G. + adaptive mixing`: `10.8744`
+  - `H. + diagonal rescalers`: `10.8925`
+- Immediate debug conclusion from the staged run:
+  - after the two core math fixes, no stage in `A` through `H` became unstable on the small layer-0 attention debug ladder
+  - the earlier catastrophic behavior was caused by shared core math, not by QKV-specific WaterSIC extras
+  - residual correction is a no-op in this exact layer-0-only setup, as expected

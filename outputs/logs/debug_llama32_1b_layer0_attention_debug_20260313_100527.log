@@ -1,0 +1,8 @@
+2026-03-13 10:05:27 | INFO | debug_llama32_1b_layer0_attention_debug | Configured repo-local caches: {'HF_HOME': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache', 'HUGGINGFACE_HUB_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/hub', 'TRANSFORMERS_CACHE': '/nfs_tmp/Compression_team/src/WaterSIC/outputs/hf_cache/transformers', 'PIP_CACHE_DIR': '/nfs_tmp/Compression_team/src/WaterSIC/.cache/pip'}
+2026-03-13 10:05:27 | INFO | debug_llama32_1b_layer0_attention_debug | Device selection: DeviceSelection(torch_device='cuda', cuda_visible_devices='1', reason='idle_gpu_selected', gpu_index=1, gpu_name='NVIDIA RTX A6000')
+2026-03-13 10:05:53 | INFO | debug_llama32_1b_layer0_attention_debug | Running baseline small-eval perplexity for layer-0 attention debug
+2026-03-13 10:05:54 | INFO | debug_llama32_1b_layer0_attention_debug | Starting debug stage A. HPTQ-equivalent
+2026-03-13 10:05:57 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 0 for layer model.layers.0
+2026-03-13 10:05:59 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 1 for layer model.layers.0
+2026-03-13 10:06:01 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 2 for layer model.layers.0
+2026-03-13 10:06:03 | INFO | debug_llama32_1b_layer0_attention_debug | Collected calibration batch 3 for layer model.layers.0

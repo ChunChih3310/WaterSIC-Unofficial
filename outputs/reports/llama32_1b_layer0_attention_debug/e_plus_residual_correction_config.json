@@ -1,0 +1,174 @@
+{
+  "debug_config": {
+    "calibration": {
+      "batch_size": 1,
+      "num_sequences": 4,
+      "sequence_length": 2048,
+      "split": "train"
+    },
+    "device": {
+      "override": null
+    },
+    "probe_eval": {
+      "batch_size": 1,
+      "num_sequences": 4,
+      "sequence_length": 2048,
+      "split": "test"
+    },
+    "quant": {
+      "binary_search_iterations": 8,
+      "damping": 0.0001,
+      "dead_feature_tau": 0.001,
+      "golden_section_iterations": 5,
+      "rescaler_ridge": 1e-06,
+      "row_sample_fraction": 0.25,
+      "seed": 0,
+      "target_bitwidth": 3.0
+    },
+    "reference_device": null,
+    "run_name": "llama32_1b_layer0_attention_debug",
+    "stages": [
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "A. HPTQ-equivalent",
+        "max_rescaler_iters": 0,
+        "name": "a_hptq_equivalent",
+        "optimize_mixing": false,
+        "spacing_strategy": "uniform_alpha",
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": false,
+        "use_residual_correction": false
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "B. PlainWaterSIC",
+        "max_rescaler_iters": 0,
+        "name": "b_plain_watersic",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": false,
+        "use_residual_correction": false
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "C. + LMMSE",
+        "max_rescaler_iters": 0,
+        "name": "c_plus_lmmse",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": false,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": false
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "D. + activation drift correction",
+        "max_rescaler_iters": 0,
+        "name": "d_plus_activation_drift",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": false
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "E. + residual correction",
+        "max_rescaler_iters": 0,
+        "name": "e_plus_residual_correction",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": false,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "F. + attention weighting",
+        "max_rescaler_iters": 0,
+        "name": "f_plus_attention_weighting",
+        "optimize_mixing": false,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": false,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "G. + adaptive mixing",
+        "max_rescaler_iters": 0,
+        "name": "g_plus_adaptive_mixing",
+        "optimize_mixing": true,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      },
+      {
+        "epsilon_aw": 0.0,
+        "epsilon_qr": 0.0,
+        "label": "H. + diagonal rescalers",
+        "max_rescaler_iters": 4,
+        "name": "h_plus_diagonal_rescalers",
+        "optimize_mixing": true,
+        "spacing_strategy": "watersic",
+        "use_activation_drift": true,
+        "use_adaptive_mixing": true,
+        "use_attention_weighting": true,
+        "use_lmmse": true,
+        "use_residual_correction": true
+      }
+    ]
+  },
+  "model_config": {
+    "architecture": "llama",
+    "attn_implementation": "eager",
+    "dtype": "bfloat16",
+    "model_id": "meta-llama/Llama-3.2-1B",
+    "model_revision": "main",
+    "tokenizer_id": "meta-llama/Llama-3.2-1B",
+    "tokenizer_revision": "main",
+    "trust_remote_code": false
+  },
+  "stage": {
+    "binary_search_iterations": 8,
+    "damping": 0.0001,
+    "dead_feature_tau": 0.001,
+    "epsilon_aw": 0.0,
+    "epsilon_qr": 0.0,
+    "golden_section_iterations": 5,
+    "max_rescaler_iters": 0,
+    "rescaler_ridge": 1e-06,
+    "row_sample_fraction": 0.25,
+    "seed": 0,
+    "spacing_strategy": "watersic",
+    "target_rate": 3.0,
+    "use_activation_drift": true,
+    "use_adaptive_mixing": false,
+    "use_attention_weighting": false,
+    "use_lmmse": true,
+    "use_residual_correction": true
+  }
+}
