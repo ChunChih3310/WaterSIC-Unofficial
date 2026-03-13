@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import gc
+import math
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +32,35 @@ class SequentialQuantizationConfig:
     max_layers: int | None = None
     max_modules: int | None = None
     layer_config: LayerQuantizationConfig = LayerQuantizationConfig(target_rate=4.0)
+
+
+def _relative_weight_error(reference: torch.Tensor, candidate: torch.Tensor) -> tuple[float, float]:
+    ref = reference.to(torch.float64)
+    cand = candidate.to(torch.float64)
+    numerator = float((cand - ref).square().sum().item())
+    denominator = float(ref.square().sum().item())
+    return numerator, denominator
+
+
+def _kind_summary(layer_results: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for payload in layer_results.values():
+        grouped[str(payload["kind"])].append(payload)
+
+    summary: dict[str, dict[str, Any]] = {}
+    for kind, payloads in grouped.items():
+        mean_relative_mse = sum(float(item["relative_weight_mse"]) for item in payloads) / max(len(payloads), 1)
+        max_relative_mse = max(float(item["relative_weight_mse"]) for item in payloads)
+        mean_entropy = sum(float(item["entropy_rate"]) for item in payloads) / max(len(payloads), 1)
+        mean_huffman = sum(float(item["huffman_rate"]) for item in payloads) / max(len(payloads), 1)
+        summary[kind] = {
+            "count": len(payloads),
+            "mean_relative_weight_mse": mean_relative_mse,
+            "max_relative_weight_mse": max_relative_mse,
+            "mean_entropy_rate": mean_entropy,
+            "mean_huffman_rate": mean_huffman,
+        }
+    return summary
 
 
 def _layer_stats_template(spec: LinearModuleSpec, hidden_dim: int, input_dim: int) -> dict[str, SecondMomentAccumulator]:
@@ -137,6 +168,7 @@ def quantize_model_sequential(
     reference_model=None,
     reference_device: torch.device | None = None,
 ) -> tuple[RunReport, Path]:
+    run_start = time.perf_counter()
     specs = iter_linear_module_specs(model)
     grouped = group_specs_by_layer(specs)
     layer_indices = sorted(grouped)
@@ -157,10 +189,12 @@ def quantize_model_sequential(
     remaining_weights = total_weights
     layer_reports: list[LayerReport] = []
     layer_results: dict[str, dict[str, Any]] = {}
+    quantization_anomalies: list[str] = []
 
     for layer_index in layer_indices:
         layer_specs = grouped[layer_index]
         logger.info("Collecting statistics for layer %d", layer_index)
+        layer_start = time.perf_counter()
         stats_map = collect_layer_statistics(
             model,
             calibration_dataset,
@@ -173,6 +207,7 @@ def quantize_model_sequential(
         )
         for spec in layer_specs:
             module = model.get_submodule(spec.full_path)
+            original_weight = module.weight.detach().cpu().to(torch.float64)
             num_weights = module.weight.numel()
             target_rate = remaining_budget / max(remaining_weights, 1)
             layer_config = LayerQuantizationConfig(
@@ -195,12 +230,26 @@ def quantize_model_sequential(
                 spacing_strategy=config.layer_config.spacing_strategy,
             )
             result = quantize_linear_layer(
-                module.weight.detach().cpu(),
+                original_weight,
                 stats_map[spec.full_path],
                 layer_config,
                 kind=spec.kind,
             )
             module.weight.data.copy_(result.quantized_weight.to(module.weight.device, dtype=module.weight.dtype))
+            weight_num, weight_den = _relative_weight_error(original_weight, result.quantized_weight)
+            relative_weight_mse = weight_num / max(weight_den, 1e-12)
+            max_abs_weight_error = float((result.quantized_weight.to(torch.float64) - original_weight).abs().max().item())
+            reference_delta_norm = float(
+                (stats_map[spec.full_path].sigma_x - stats_map[spec.full_path].sigma_x_hat).to(torch.float64).norm().item()
+            )
+            reference_stats_effective = (
+                config.reference_stats
+                and layer_config.use_activation_drift
+                and stats_map[spec.full_path].sigma_x_hat is not None
+                and reference_delta_norm > 1e-12
+            )
+            if not math.isfinite(relative_weight_mse) or not math.isfinite(max_abs_weight_error):
+                quantization_anomalies.append(f"{spec.full_path}: non-finite reconstruction metrics")
             remaining_budget -= result.bitrate.final_effective_average_bitwidth * num_weights
             remaining_weights -= num_weights
             layer_reports.append(
@@ -218,6 +267,7 @@ def quantize_model_sequential(
                 )
             )
             layer_results[spec.full_path] = {
+                "layer_index": spec.layer_index,
                 "kind": spec.kind,
                 "target_rate": target_rate,
                 "achieved_rate": result.bitrate.final_effective_average_bitwidth,
@@ -226,19 +276,45 @@ def quantize_model_sequential(
                 "huffman_rate": result.bitrate.huffman_average_bitwidth,
                 "side_information_rate": result.bitrate.side_information_average_bitwidth,
                 "selected_c": result.search.selected_c,
+                "reference_stats_requested": bool(config.reference_stats),
+                "reference_stats_enabled": bool(layer_config.use_activation_drift),
+                "reference_stats_effective": bool(reference_stats_effective),
+                "reference_stats_delta_norm": reference_delta_norm,
+                "relative_weight_mse": relative_weight_mse,
+                "max_abs_weight_error": max_abs_weight_error,
                 "spacings": [float(x) for x in result.spacings.tolist()],
                 "lmmse_gammas": [float(x) for x in result.lmmse_gammas.tolist()],
+                "alpha_min": float(result.diagnostics["alpha_min"]),
+                "alpha_max": float(result.diagnostics["alpha_max"]),
+                "gamma_min": float(result.diagnostics["gamma_min"]),
+                "gamma_max": float(result.diagnostics["gamma_max"]),
                 "row_scale_shape": list(result.row_scale.shape),
                 "column_scale_shape": list(result.column_scale.shape),
                 "num_dead_features": int((~result.dead_features.keep_mask).sum().item()),
+                "dead_feature_threshold": float(result.dead_features.threshold),
+                "dead_feature_mask_size": int(result.dead_features.keep_mask.numel()),
+                "dead_feature_kept_dim": int(result.dead_features.keep_indices.numel()),
+                "dead_feature_pruned_indices": [int(x) for x in result.dead_features.dead_indices.tolist()],
                 "weighted_error": result.search.quantization.weighted_error,
+                "compensation_applied": bool(result.compensation_matrix is not None),
+                "damping_configured": float(layer_config.damping),
+                "damping_applied": float(result.applied_damping),
+                "sigma_delta_x_hat_fro_norm": float(
+                    torch.linalg.matrix_norm(stats_map[spec.full_path].sigma_delta_x_hat, ord="fro").item()
+                )
+                if stats_map[spec.full_path].sigma_delta_x_hat is not None
+                else 0.0,
+                "diagnostics": result.diagnostics,
             }
             logger.info(
-                "Quantized %s with target %.4f and achieved %.4f",
+                "Quantized %s with target %.4f and achieved %.4f (relMSE=%.6e, ref_delta=%.6e)",
                 spec.full_path,
                 target_rate,
                 result.bitrate.final_effective_average_bitwidth,
+                relative_weight_mse,
+                reference_delta_norm,
             )
+        logger.info("Completed layer %d in %.2fs", layer_index, time.perf_counter() - layer_start)
 
     achieved_global = sum(layer.achieved_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
     raw_global = sum(layer.raw_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
@@ -267,7 +343,32 @@ def quantize_model_sequential(
         side_information_overhead=side_global,
         layers=layer_reports,
         notes=report_metadata.get("notes", []),
-        extras={"layer_results": layer_results},
+        extras={
+            "layer_results": layer_results,
+            "reference_stats_requested": bool(config.reference_stats),
+            "reference_stats_effective_count": sum(
+                1 for payload in layer_results.values() if bool(payload["reference_stats_effective"])
+            ),
+            "worst_layers_by_relative_weight_mse": [
+                {
+                    "name": name,
+                    "kind": payload["kind"],
+                    "layer_index": payload["layer_index"],
+                    "relative_weight_mse": payload["relative_weight_mse"],
+                    "entropy_rate": payload["entropy_rate"],
+                    "huffman_rate": payload["huffman_rate"],
+                    "reference_stats_effective": payload["reference_stats_effective"],
+                }
+                for name, payload in sorted(
+                    layer_results.items(),
+                    key=lambda item: float(item[1]["relative_weight_mse"]),
+                    reverse=True,
+                )[:10]
+            ],
+            "kind_summary": _kind_summary(layer_results),
+            "quantization_anomalies": quantization_anomalies,
+            "quantization_runtime_seconds": time.perf_counter() - run_start,
+        },
     )
 
     run_dir = repo_path("outputs", "quantized", config.run_name)

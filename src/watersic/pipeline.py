@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
 from typing import Any
 
 import torch
@@ -79,6 +80,9 @@ def run_full_experiment(
     device: torch.device,
     logger,
 ) -> dict[str, Any]:
+    run_start = time.perf_counter()
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     model, tokenizer = load_model_and_tokenizer(model_config)
     model.to(device)
     model.eval()
@@ -100,7 +104,7 @@ def run_full_experiment(
     if quant_config.get("reference_stats", False):
         logger.info("Loading reference model for original-vs-quantized statistics")
         reference_model, _ = load_model_and_tokenizer(model_config)
-        reference_device = torch.device(quant_config.get("reference_device", "cpu"))
+        reference_device = torch.device(quant_config.get("reference_device", str(device)))
         reference_model.to(reference_device)
         reference_model.eval()
 
@@ -141,6 +145,11 @@ def run_full_experiment(
     run_report.perplexity = quantized_eval.perplexity
     run_report.extras["baseline_perplexity"] = baseline.perplexity
     run_report.extras["artifact_dir"] = str(artifact_dir)
+    run_report.extras["reference_device"] = str(reference_device) if reference_device is not None else None
+    run_report.extras["rescalers_enabled"] = bool(sequential_config.layer_config.max_rescaler_iters > 0)
+    run_report.extras["runtime_seconds_total"] = time.perf_counter() - run_start
+    if device.type == "cuda":
+        run_report.extras["peak_memory_gb"] = torch.cuda.max_memory_allocated(device) / (1024**3)
 
     final_report = run_report.to_dict()
     save_json(Path(artifact_dir) / "metadata.json", final_report)
