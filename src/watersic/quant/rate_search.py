@@ -36,6 +36,20 @@ def _sample_rows(target_y: torch.Tensor, fraction: float, seed: int = 0) -> torc
     return target_y.index_select(0, indices)
 
 
+def quantize_at_c(
+    target_y: torch.Tensor,
+    cholesky: torch.Tensor,
+    c: float,
+    side_information_bits: float = 0.0,
+    *,
+    use_lmmse: bool = True,
+    spacing_strategy: str = "watersic",
+) -> tuple[BitrateMetrics, ZSICResult]:
+    result = zsic_quantize(target_y, cholesky, c, use_lmmse=use_lmmse, spacing_strategy=spacing_strategy)
+    metrics = estimate_bitrate_metrics(result.quantized_ints, side_information_bits=side_information_bits)
+    return metrics, result
+
+
 def _evaluate(
     target_y: torch.Tensor,
     cholesky: torch.Tensor,
@@ -45,8 +59,14 @@ def _evaluate(
     use_lmmse: bool = True,
     spacing_strategy: str = "watersic",
 ) -> tuple[float, BitrateMetrics]:
-    result = zsic_quantize(target_y, cholesky, c, use_lmmse=use_lmmse, spacing_strategy=spacing_strategy)
-    metrics = estimate_bitrate_metrics(result.quantized_ints, side_information_bits=side_information_bits)
+    metrics, _ = quantize_at_c(
+        target_y,
+        cholesky,
+        c,
+        side_information_bits=side_information_bits,
+        use_lmmse=use_lmmse,
+        spacing_strategy=spacing_strategy,
+    )
     return metrics.final_effective_average_bitwidth, metrics
 
 
@@ -130,14 +150,14 @@ def binary_search_c(
             high = mid
 
     selected_c = high
-    quantization = zsic_quantize(
+    bitrate, quantization = quantize_at_c(
         target_y.cpu(),
         cholesky.cpu(),
         selected_c,
+        side_information_bits=side_information_bits,
         use_lmmse=use_lmmse,
         spacing_strategy=spacing_strategy,
     )
-    bitrate = estimate_bitrate_metrics(quantization.quantized_ints, side_information_bits=side_information_bits)
     return RateSearchResult(
         target_rate=target_rate,
         selected_c=selected_c,

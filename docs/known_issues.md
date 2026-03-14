@@ -3,15 +3,15 @@
 ## Critical Blockers
 
 1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits remains the rescaler-enabled point, and it is still far from the paper’s `10.57` PPL point. Current best completed result: `15.7029` PPL at `2.9984` effective bits, an absolute gap of `+5.1329`.
-2. The general-pipeline adaptive-mixing upgrade is now fully implemented and fully benchmarked, but it regressed final PPL to `16.6096` despite improving the local QKV search objective. This is now the clearest remaining quality-recovery blocker.
-3. The full-model runs still use only `8` calibration chunks. Calibration size is still likely limiting, but it is not yet the clearest immediate blocker because the adaptive-mixing upgrade itself currently hurts end-task quality.
+2. The original general-pipeline adaptive-mixing upgrade regressed final PPL to `16.6096` despite improving the local QKV search objective. The paper-backed repair is now implemented and validated on the first two layers, but the repaired full-model run is still in progress, so there is not yet a new completed full-model replacement for that point.
+3. The full-model runs still use only `8` calibration chunks. Calibration size is still likely limiting, but the current round is still resolving the repaired adaptive-mixing endpoint before spending more runtime on larger calibration.
 4. The current WikiText-2 loader tokenizes the full concatenated split before chunking. It works, but it is inefficient and emits a long-sequence tokenizer warning.
 
 ## Implementation Gaps
 
 1. The repo now has a full-model `Llama-3.2-1B` result, but not yet a paper-matching one. The remaining work is quality recovery, not basic end-to-end execution.
 2. Diagonal rescalers are now validated on the full-model path and improve PPL materially.
-3. The upgraded general-pipeline adaptive-mixing search is now validated end-to-end, but its current local objective/search coupling does not improve full-model quality.
+3. The original upgraded general-pipeline adaptive-mixing search is validated end-to-end, but its old local objective/search coupling did not improve full-model quality. A repaired search path now reuses the step-1 Q/K/V scales during the coordinate search and is validated on a `2`-layer prefix.
 4. The full-model runs use only `8` calibration sequences as a runtime shortcut; this is smaller than a fully paper-faithful calibration budget.
 5. Qwen3-8B was intentionally not run in this round.
 
@@ -105,17 +105,39 @@
    - `15.7029` PPL at `2.9984` effective bits
    - better than the no-rescaler baseline by `1.1654`
    - better than the adaptive-mixing upgraded run by `0.9067`
+17. A paper-backed adaptive-mixing repair is now implemented:
+   - the old search re-ran binary search over `c` inside every `epsilon` candidate evaluation
+   - the repaired search reuses the step-1 calibrated Q/K/V scales during the `epsilon_qr` and `epsilon_aw` searches
+   - the final recalibration pass remains enabled
+18. The repaired path passed the first larger-scope validation:
+   - config: `configs/quant/watersic_llama32_1b_prefix2_reftrue_rescaler_mixing_repaircheck.yaml`
+   - achieved effective bits: `2.9862`
+   - entropy bits: `2.9743`
+   - Huffman bits: `3.0262`
+   - baseline small-eval PPL: `8.9880`
+   - quantized small-eval PPL: `9.5600`
+   - total runtime: `3441.95s`
+19. The repaired search is materially faster on the validated prefix:
+   - layer 0 adaptive-mixing search: about `10.1x` faster than the old full-model path
+   - layer 1 adaptive-mixing search: about `5.7x` faster than the old full-model path
+20. The repaired full-model run is now active:
+   - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml`
+   - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_20260315_015946.log`
+   - latest confirmed status in this repo update: through layer `5` adaptive-mixing search without instability
 
 ## Not Yet Valid To Claim
 
 1. It is not yet valid to claim a faithful reproduction of the paper’s final `Llama-3.2-1B` `3.00`-bit result, because the best completed run is still `+5.1329` PPL worse than the paper.
-2. It is not yet valid to claim that the current repo reproduces the paper’s final adaptive-mixing behavior, because the implemented full-model search currently worsens PPL instead of improving it.
+2. It is not yet valid to claim that the current repo reproduces the paper’s final adaptive-mixing behavior, because the repaired full-model run has not finished yet and the best completed adaptive-mixing full-model point is still worse than the rescaler-only reference.
 3. It is not yet valid to claim that the current repo reproduces the paper’s final accuracy-quality frontier; the repo now reproduces the end-to-end pipeline, not yet the final paper number.
 4. It is not yet valid to claim that Qwen3-8B reproduction is done; it was intentionally not run in this round.
 
 ## Immediate Next Step
 
 1. Keep the rescaler-only run as the current best completed reference point.
-2. Treat adaptive mixing as the current highest-value debug target, because it regressed global PPL despite improving local QKV objectives.
-3. Do not spend more runtime on larger calibration yet; first verify why the adaptive-mixing objective helps locally but not globally.
+2. Let the repaired full-model adaptive-mixing run finish and compare it directly against:
+   - rescaler-only best point
+   - old adaptive-mixing full-model point
+   - paper `10.57` point
+3. Do not spend more runtime on larger calibration yet; first see whether the repaired full-model adaptive-mixing endpoint actually closes the quality gap.
 4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is better understood.

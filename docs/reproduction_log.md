@@ -399,3 +399,72 @@
     - the local adaptive-mixing optimization improves `wo`-input distortion
     - that improvement does not currently translate into better full-model WikiText-2 PPL
   - calibration size beyond `8` chunks is still likely limiting, but it is not yet the single clearest next move while the adaptive-mixing path is still regressing the full-model result
+
+## 2026-03-15
+
+- Re-read the local paper sections on adaptive mixing and wrote a paper audit:
+  - `outputs/reports/adaptive_mixing_paper_audit.md`
+  - key paper-backed conclusion:
+    - the adaptive-mixing search must reuse the step-1 calibrated Q/K/V scales during the `epsilon_qr` and `epsilon_aw` coordinate searches
+    - the final recalibration pass remains necessary after the optimal pair is selected
+- Wrote a mismatch diagnosis from the completed full-model runs:
+  - `outputs/reports/adaptive_mixing_mismatch_diagnosis.md`
+  - diagnosis:
+    - the old implementation was optimizing a moving target because it re-ran binary search over `c` inside every `epsilon` candidate evaluation
+    - this explained both the quality mismatch and most of the runtime blow-up
+- Tested and rejected a stricter shared-stage-`c` interpretation during a narrow repair-check:
+  - interrupted run log:
+    - `outputs/logs/run_llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_20260315_004633.log`
+  - observed failure mode:
+    - layer `0` `v_proj` collapsed to about `1.32` bits with relative weight MSE about `0.93`
+  - conclusion:
+    - forcing one shared scalar across the whole QKV triplet was not kept
+- Implemented the accepted adaptive-mixing repair:
+  - initial QKV calibration at `(epsilon_qr, epsilon_aw) = (0, 0)`
+  - reuse the step-1 calibrated per-matrix Q/K/V scales during the coordinate search
+  - keep the existing final recalibration pass after selecting `(epsilon_qr*, epsilon_aw*)`
+  - remove repeated binary searches from the candidate loop
+- Wrote the runtime-analysis note:
+  - `outputs/reports/adaptive_mixing_runtime_optimization.md`
+  - measured runtime reduction on the repaired path:
+    - layer 0 adaptive-mixing search: about `10.1x` faster than the old full-model adaptive-mixing run
+    - layer 1 adaptive-mixing search: about `5.7x` faster
+- Completed a repaired two-layer validation run:
+  - config: `configs/quant/watersic_llama32_1b_prefix2_reftrue_rescaler_mixing_repaircheck.yaml`
+  - log: `outputs/logs/run_llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2_20260315_010200.log`
+  - reports:
+    - `outputs/reports/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.json`
+    - `outputs/reports/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.md`
+  - result:
+    - achieved effective bits: `2.9862`
+    - entropy bits: `2.9743`
+    - Huffman bits: `3.0262`
+    - baseline smoke-8 PPL: `8.9880`
+    - quantized smoke-8 PPL: `9.5600`
+    - total runtime: `3441.95s`
+    - peak memory: `18.65 GiB`
+  - repaired-path sanity:
+    - no new NaN/Inf
+    - no Q/K blow-up
+    - layer 0 and layer 1 QKV rates/magnitudes stayed in the same regime as the previously stable path
+- Started the repaired full-model run on a pinned idle GPU:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_20260315_015946.log`
+  - launch mode:
+    - `CUDA_VISIBLE_DEVICES=4`
+    - `reference_stats: true`
+    - fixed residual correction enabled
+    - staged same-layer stat refresh enabled
+    - rescalers enabled
+    - repaired adaptive-mixing search enabled
+- Latest confirmed status for the in-progress repaired full-model run at the time of this log update:
+  - layer 0 completed
+  - layer 1 completed
+  - layer 2 completed
+  - layer 3 completed
+  - layer 4 completed
+  - layer 5 adaptive-mixing search selected:
+    - `epsilon_qr = 0.516348`
+    - `epsilon_aw = 0.837561`
+    - timestamp: `2026-03-15 04:54:34`
+  - no numerical instability observed so far

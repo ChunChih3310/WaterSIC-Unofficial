@@ -215,6 +215,103 @@ def quantize_model_sequential(
     layer_results: dict[str, dict[str, Any]] = {}
     quantization_anomalies: list[str] = []
 
+    def record_quantized_result(
+        spec: LinearModuleSpec,
+        original_weight: torch.Tensor,
+        result: LayerQuantizationResult,
+        layer_config: LayerQuantizationConfig,
+        stage_kinds: list[str],
+        stats: LayerStatistics,
+        *,
+        target_rate: float,
+        mixing_audit: dict[str, Any] | None,
+        stage_quantization: dict[str, Any] | None = None,
+    ) -> None:
+        nonlocal remaining_budget, remaining_weights
+        module = model.get_submodule(spec.full_path)
+        num_weights = module.weight.numel()
+        weight_num, weight_den = _relative_weight_error(original_weight, result.quantized_weight)
+        relative_weight_mse = weight_num / max(weight_den, 1e-12)
+        max_abs_weight_error = float((result.quantized_weight.to(torch.float64) - original_weight).abs().max().item())
+        reference_delta_norm = float((stats.sigma_x - stats.sigma_x_hat).to(torch.float64).norm().item())
+        reference_stats_effective = (
+            config.reference_stats
+            and layer_config.use_activation_drift
+            and stats.sigma_x_hat is not None
+            and reference_delta_norm > 1e-12
+        )
+        if not math.isfinite(relative_weight_mse) or not math.isfinite(max_abs_weight_error):
+            quantization_anomalies.append(f"{spec.full_path}: non-finite reconstruction metrics")
+        remaining_budget -= result.bitrate.final_effective_average_bitwidth * num_weights
+        remaining_weights -= num_weights
+        layer_reports.append(
+            LayerReport(
+                name=spec.full_path,
+                kind=spec.kind,
+                target_bitwidth=target_rate,
+                achieved_bitwidth=result.bitrate.final_effective_average_bitwidth,
+                raw_bitwidth=result.bitrate.raw_average_bitwidth,
+                entropy_bitwidth=result.bitrate.entropy_average_bitwidth,
+                huffman_bitwidth=result.bitrate.huffman_average_bitwidth,
+                side_information_bitwidth=result.bitrate.side_information_average_bitwidth,
+                weighted_error=result.search.quantization.weighted_error,
+                applied_damping=result.applied_damping,
+            )
+        )
+        layer_results[spec.full_path] = {
+            "layer_index": spec.layer_index,
+            "kind": spec.kind,
+            "collection_stage_kinds": stage_kinds,
+            "target_rate": target_rate,
+            "achieved_rate": result.bitrate.final_effective_average_bitwidth,
+            "raw_rate": result.bitrate.raw_average_bitwidth,
+            "entropy_rate": result.bitrate.entropy_average_bitwidth,
+            "huffman_rate": result.bitrate.huffman_average_bitwidth,
+            "side_information_rate": result.bitrate.side_information_average_bitwidth,
+            "selected_c": result.search.selected_c,
+            "reference_stats_requested": bool(config.reference_stats),
+            "reference_stats_enabled": bool(layer_config.use_activation_drift),
+            "reference_stats_effective": bool(reference_stats_effective),
+            "reference_stats_delta_norm": reference_delta_norm,
+            "relative_weight_mse": relative_weight_mse,
+            "max_abs_weight_error": max_abs_weight_error,
+            "spacings": [float(x) for x in result.spacings.tolist()],
+            "lmmse_gammas": [float(x) for x in result.lmmse_gammas.tolist()],
+            "alpha_min": float(result.diagnostics["alpha_min"]),
+            "alpha_max": float(result.diagnostics["alpha_max"]),
+            "gamma_min": float(result.diagnostics["gamma_min"]),
+            "gamma_max": float(result.diagnostics["gamma_max"]),
+            "row_scale_shape": list(result.row_scale.shape),
+            "column_scale_shape": list(result.column_scale.shape),
+            "num_dead_features": int((~result.dead_features.keep_mask).sum().item()),
+            "dead_feature_threshold": float(result.dead_features.threshold),
+            "dead_feature_mask_size": int(result.dead_features.keep_mask.numel()),
+            "dead_feature_kept_dim": int(result.dead_features.keep_indices.numel()),
+            "dead_feature_pruned_indices": [int(x) for x in result.dead_features.dead_indices.tolist()],
+            "weighted_error": result.search.quantization.weighted_error,
+            "compensation_applied": bool(result.compensation_matrix is not None),
+            "damping_configured": float(layer_config.damping),
+            "damping_applied": float(result.applied_damping),
+            "epsilon_qr": float(layer_config.epsilon_qr),
+            "epsilon_aw": float(layer_config.epsilon_aw),
+            "adaptive_mixing_optimized": bool(mixing_audit is not None and mixing_audit.get("enabled", False)),
+            "adaptive_mixing_audit": mixing_audit,
+            "sigma_delta_x_hat_fro_norm": float(torch.linalg.matrix_norm(stats.sigma_delta_x_hat, ord="fro").item())
+            if stats.sigma_delta_x_hat is not None
+            else 0.0,
+            "diagnostics": result.diagnostics,
+        }
+        if stage_quantization is not None:
+            layer_results[spec.full_path]["stage_quantization"] = stage_quantization
+        logger.info(
+            "Quantized %s with target %.4f and achieved %.4f (relMSE=%.6e, ref_delta=%.6e)",
+            spec.full_path,
+            target_rate,
+            result.bitrate.final_effective_average_bitwidth,
+            relative_weight_mse,
+            reference_delta_norm,
+        )
+
     for layer_index in layer_indices:
         layer_specs = grouped[layer_index]
         layer_start = time.perf_counter()
@@ -278,7 +375,6 @@ def quantize_model_sequential(
             for spec in stage_specs:
                 module = model.get_submodule(spec.full_path)
                 original_weight = module.weight.detach().cpu().to(torch.float64)
-                num_weights = module.weight.numel()
                 target_rate = remaining_budget / max(remaining_weights, 1)
                 layer_config = LayerQuantizationConfig(
                     target_rate=target_rate,
@@ -308,90 +404,15 @@ def quantize_model_sequential(
                     kind=spec.kind,
                 )
                 module.weight.data.copy_(result.quantized_weight.to(module.weight.device, dtype=module.weight.dtype))
-                weight_num, weight_den = _relative_weight_error(original_weight, result.quantized_weight)
-                relative_weight_mse = weight_num / max(weight_den, 1e-12)
-                max_abs_weight_error = float(
-                    (result.quantized_weight.to(torch.float64) - original_weight).abs().max().item()
-                )
-                reference_delta_norm = float(
-                    (stats_map[spec.full_path].sigma_x - stats_map[spec.full_path].sigma_x_hat).to(torch.float64).norm().item()
-                )
-                reference_stats_effective = (
-                    config.reference_stats
-                    and layer_config.use_activation_drift
-                    and stats_map[spec.full_path].sigma_x_hat is not None
-                    and reference_delta_norm > 1e-12
-                )
-                if not math.isfinite(relative_weight_mse) or not math.isfinite(max_abs_weight_error):
-                    quantization_anomalies.append(f"{spec.full_path}: non-finite reconstruction metrics")
-                remaining_budget -= result.bitrate.final_effective_average_bitwidth * num_weights
-                remaining_weights -= num_weights
-                layer_reports.append(
-                    LayerReport(
-                        name=spec.full_path,
-                        kind=spec.kind,
-                        target_bitwidth=target_rate,
-                        achieved_bitwidth=result.bitrate.final_effective_average_bitwidth,
-                        raw_bitwidth=result.bitrate.raw_average_bitwidth,
-                        entropy_bitwidth=result.bitrate.entropy_average_bitwidth,
-                        huffman_bitwidth=result.bitrate.huffman_average_bitwidth,
-                        side_information_bitwidth=result.bitrate.side_information_average_bitwidth,
-                        weighted_error=result.search.quantization.weighted_error,
-                        applied_damping=result.applied_damping,
-                    )
-                )
-                layer_results[spec.full_path] = {
-                    "layer_index": spec.layer_index,
-                    "kind": spec.kind,
-                    "collection_stage_kinds": stage_kinds,
-                    "target_rate": target_rate,
-                    "achieved_rate": result.bitrate.final_effective_average_bitwidth,
-                    "raw_rate": result.bitrate.raw_average_bitwidth,
-                    "entropy_rate": result.bitrate.entropy_average_bitwidth,
-                    "huffman_rate": result.bitrate.huffman_average_bitwidth,
-                    "side_information_rate": result.bitrate.side_information_average_bitwidth,
-                    "selected_c": result.search.selected_c,
-                    "reference_stats_requested": bool(config.reference_stats),
-                    "reference_stats_enabled": bool(layer_config.use_activation_drift),
-                    "reference_stats_effective": bool(reference_stats_effective),
-                    "reference_stats_delta_norm": reference_delta_norm,
-                    "relative_weight_mse": relative_weight_mse,
-                    "max_abs_weight_error": max_abs_weight_error,
-                    "spacings": [float(x) for x in result.spacings.tolist()],
-                    "lmmse_gammas": [float(x) for x in result.lmmse_gammas.tolist()],
-                    "alpha_min": float(result.diagnostics["alpha_min"]),
-                    "alpha_max": float(result.diagnostics["alpha_max"]),
-                    "gamma_min": float(result.diagnostics["gamma_min"]),
-                    "gamma_max": float(result.diagnostics["gamma_max"]),
-                    "row_scale_shape": list(result.row_scale.shape),
-                    "column_scale_shape": list(result.column_scale.shape),
-                    "num_dead_features": int((~result.dead_features.keep_mask).sum().item()),
-                    "dead_feature_threshold": float(result.dead_features.threshold),
-                    "dead_feature_mask_size": int(result.dead_features.keep_mask.numel()),
-                    "dead_feature_kept_dim": int(result.dead_features.keep_indices.numel()),
-                    "dead_feature_pruned_indices": [int(x) for x in result.dead_features.dead_indices.tolist()],
-                    "weighted_error": result.search.quantization.weighted_error,
-                    "compensation_applied": bool(result.compensation_matrix is not None),
-                    "damping_configured": float(layer_config.damping),
-                    "damping_applied": float(result.applied_damping),
-                    "epsilon_qr": float(layer_config.epsilon_qr),
-                    "epsilon_aw": float(layer_config.epsilon_aw),
-                    "adaptive_mixing_optimized": bool(mixing_audit is not None and mixing_audit.get("enabled", False)),
-                    "adaptive_mixing_audit": mixing_audit,
-                    "sigma_delta_x_hat_fro_norm": float(
-                        torch.linalg.matrix_norm(stats_map[spec.full_path].sigma_delta_x_hat, ord="fro").item()
-                    )
-                    if stats_map[spec.full_path].sigma_delta_x_hat is not None
-                    else 0.0,
-                    "diagnostics": result.diagnostics,
-                }
-                logger.info(
-                    "Quantized %s with target %.4f and achieved %.4f (relMSE=%.6e, ref_delta=%.6e)",
-                    spec.full_path,
-                    target_rate,
-                    result.bitrate.final_effective_average_bitwidth,
-                    relative_weight_mse,
-                    reference_delta_norm,
+                record_quantized_result(
+                    spec,
+                    original_weight,
+                    result,
+                    layer_config,
+                    stage_kinds,
+                    stats_map[spec.full_path],
+                    target_rate=target_rate,
+                    mixing_audit=mixing_audit,
                 )
         logger.info("Completed layer %d in %.2fs", layer_index, time.perf_counter() - layer_start)
 

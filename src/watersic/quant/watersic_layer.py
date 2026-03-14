@@ -12,7 +12,7 @@ from watersic.stats.dead_features import DeadFeatureReport, detect_dead_features
 from watersic.stats.drift import symmetrize
 from watersic.stats.residual import is_residual_target, residual_compensation_matrix
 
-from .rate_search import RateSearchResult, binary_search_c
+from .rate_search import RateSearchResult, binary_search_c, quantize_at_c
 from .rescalers import RescalerResult, disabled_rescalers, optimize_diagonal_rescalers
 
 
@@ -221,6 +221,46 @@ def quantize_linear_layer(
         use_lmmse=config.use_lmmse,
         spacing_strategy=config.spacing_strategy,
     )
+    return quantize_prepared_layer_problem(
+        weight,
+        problem,
+        config,
+        kind=kind,
+        search=search,
+        reference_stats_available=bool(stats.sigma_x_hat is not None and stats.sigma_x_x_hat is not None),
+    )
+
+
+def quantize_prepared_layer_problem(
+    weight: torch.Tensor,
+    problem: PreparedLayerProblem,
+    config: LayerQuantizationConfig,
+    *,
+    kind: str,
+    search: RateSearchResult | None = None,
+    selected_c: float | None = None,
+    reference_stats_available: bool = False,
+) -> LayerQuantizationResult:
+    if search is None:
+        if selected_c is None:
+            raise ValueError("Either an explicit RateSearchResult or selected_c must be provided")
+        bitrate, quantization = quantize_at_c(
+            problem.target_y.cpu(),
+            problem.cholesky.cpu(),
+            float(selected_c),
+            side_information_bits=problem.side_information_bits,
+            use_lmmse=config.use_lmmse,
+            spacing_strategy=config.spacing_strategy,
+        )
+        search = RateSearchResult(
+            target_rate=config.target_rate,
+            selected_c=float(selected_c),
+            achieved_rate=bitrate.final_effective_average_bitwidth,
+            bounds=(float(selected_c), float(selected_c)),
+            history=[],
+            bitrate=bitrate,
+            quantization=quantization,
+        )
     _assert_finite_tensor("search_spacings", search.quantization.spacings)
     _assert_finite_tensor("search_gammas", search.quantization.gammas)
     _assert_finite_tensor("search_reconstructed", search.quantization.reconstructed)
@@ -296,7 +336,7 @@ def quantize_linear_layer(
         ),
         "attention_weighting_requested": bool(config.use_attention_weighting),
         "attention_weighting_applied": bool(config.use_attention_weighting and is_attention_weighted_target(kind)),
-        "reference_stats_available": bool(stats.sigma_x_hat is not None and stats.sigma_x_x_hat is not None),
+        "reference_stats_available": bool(reference_stats_available),
     }
 
     return LayerQuantizationResult(

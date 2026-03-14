@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import math
+import time
 from dataclasses import replace
 from typing import Any, Callable
 
@@ -9,7 +10,13 @@ import torch
 
 from watersic.models.registry import LinearModuleSpec
 
-from .watersic_layer import LayerQuantizationConfig, LayerStatistics, quantize_linear_layer
+from .watersic_layer import (
+    LayerQuantizationConfig,
+    LayerStatistics,
+    prepare_layer_problem,
+    quantize_linear_layer,
+    quantize_prepared_layer_problem,
+)
 
 
 class _EarlyStopModuleInputCapture(RuntimeError):
@@ -144,35 +151,77 @@ def _quantize_qkv_stage_candidate(
     *,
     stage_remaining_budget: float,
     stage_remaining_weights: int,
-) -> list[dict[str, float]]:
+    selected_cs: dict[str, float] | None = None,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    achieved: list[dict[str, float]] = []
+    total_weights = 0
+    total_effective_bits = 0.0
+    total_entropy_bits = 0.0
+    total_huffman_bits = 0.0
     remaining_budget = float(stage_remaining_budget)
     remaining_weights = int(stage_remaining_weights)
-    achieved: list[dict[str, float]] = []
+    calibrated_cs: dict[str, float] = {}
+    stage_mode = "fixed_c_reuse" if selected_cs is not None else "per_matrix_rate_search"
     for spec in qkv_specs:
         module = model.get_submodule(spec.full_path)
+        original_weight = module.weight.detach().cpu()
         target_rate = remaining_budget / max(remaining_weights, 1)
         candidate_config = replace(config, target_rate=target_rate)
-        result = quantize_linear_layer(
-            module.weight.detach().cpu(),
-            stats_map[spec.full_path],
-            candidate_config,
-            kind=spec.kind,
-        )
+        if selected_cs is None:
+            result = quantize_linear_layer(
+                original_weight,
+                stats_map[spec.full_path],
+                candidate_config,
+                kind=spec.kind,
+            )
+        else:
+            problem = prepare_layer_problem(
+                original_weight,
+                stats_map[spec.full_path],
+                candidate_config,
+                kind=spec.kind,
+            )
+            result = quantize_prepared_layer_problem(
+                original_weight,
+                problem,
+                candidate_config,
+                kind=spec.kind,
+                selected_c=float(selected_cs[spec.full_path]),
+                reference_stats_available=bool(
+                    stats_map[spec.full_path].sigma_x_hat is not None
+                    and stats_map[spec.full_path].sigma_x_x_hat is not None
+                ),
+            )
         module.weight.data.copy_(result.quantized_weight.to(module.weight.device, dtype=module.weight.dtype))
-        num_weights = module.weight.numel()
-        remaining_budget -= result.bitrate.final_effective_average_bitwidth * num_weights
-        remaining_weights -= num_weights
+        num_weights = model.get_submodule(spec.full_path).weight.numel()
+        total_weights += num_weights
+        total_effective_bits += result.bitrate.final_effective_average_bitwidth * num_weights
+        total_entropy_bits += result.bitrate.entropy_average_bitwidth * num_weights
+        total_huffman_bits += result.bitrate.huffman_average_bitwidth * num_weights
+        calibrated_cs[spec.full_path] = float(result.search.selected_c)
         achieved.append(
             {
                 "name": spec.full_path,
                 "kind": spec.kind,
                 "target_rate": target_rate,
+                "selected_c": float(result.search.selected_c),
                 "achieved_rate": float(result.bitrate.final_effective_average_bitwidth),
                 "entropy_rate": float(result.bitrate.entropy_average_bitwidth),
                 "huffman_rate": float(result.bitrate.huffman_average_bitwidth),
             }
         )
-    return achieved
+        remaining_budget -= result.bitrate.final_effective_average_bitwidth * num_weights
+        remaining_weights -= num_weights
+    stage_target_rate = float(stage_remaining_budget) / max(int(stage_remaining_weights), 1)
+    return calibrated_cs, {
+        "target_rate": stage_target_rate,
+        "selected_c_by_name": calibrated_cs,
+        "search_mode": stage_mode,
+        "achieved_rates": achieved,
+        "achieved_stage_effective_rate": total_effective_bits / max(total_weights, 1),
+        "achieved_stage_entropy_rate": total_entropy_bits / max(total_weights, 1),
+        "achieved_stage_huffman_rate": total_huffman_bits / max(total_weights, 1),
+    }
 
 
 def optimize_attention_stage_mixing(
@@ -212,18 +261,32 @@ def optimize_attention_stage_mixing(
         o_proj_path,
         device=reference_device,
     )
+    timing = {
+        "objective_evaluations": 0,
+        "quantization_seconds_total": 0.0,
+        "forward_seconds_total": 0.0,
+    }
 
-    def objective_for(epsilon_qr: float, epsilon_aw: float) -> tuple[float, list[dict[str, float]]]:
+    def objective_for(
+        epsilon_qr: float,
+        epsilon_aw: float,
+        *,
+        selected_cs: dict[str, float] | None,
+    ) -> tuple[float, dict[str, Any], dict[str, float]]:
         _restore_module_weights(model, weight_backups, qkv_specs)
         candidate_config = replace(config, epsilon_qr=epsilon_qr, epsilon_aw=epsilon_aw)
-        achieved = _quantize_qkv_stage_candidate(
+        quant_start = time.perf_counter()
+        candidate_cs, stage_summary = _quantize_qkv_stage_candidate(
             model,
             qkv_specs,
             stats_map,
             candidate_config,
             stage_remaining_budget=stage_remaining_budget,
             stage_remaining_weights=stage_remaining_weights,
+            selected_cs=selected_cs,
         )
+        quant_seconds = time.perf_counter() - quant_start
+        forward_start = time.perf_counter()
         mse = _module_input_relative_mse(
             model,
             calibration_batches,
@@ -231,36 +294,46 @@ def optimize_attention_stage_mixing(
             o_proj_path,
             device=device,
         )
+        forward_seconds = time.perf_counter() - forward_start
+        timing["objective_evaluations"] += 1
+        timing["quantization_seconds_total"] += quant_seconds
+        timing["forward_seconds_total"] += forward_seconds
         _maybe_empty_cuda_cache()
-        return mse, achieved
+        return mse, stage_summary, candidate_cs
 
-    initial_objective, initial_achieved = objective_for(0.0, 0.0)
+    initial_start = time.perf_counter()
+    initial_objective, initial_stage_summary, initial_cs = objective_for(0.0, 0.0, selected_cs=None)
+    initial_seconds = time.perf_counter() - initial_start
     logger.info(
         "Initial QKV rate-calibration at epsilon_qr=0 epsilon_aw=0 reached wo-input relative MSE %.6e",
         initial_objective,
     )
 
     def qr_objective(value: float) -> float:
-        objective, _ = objective_for(value, 0.0)
+        objective, _, _ = objective_for(value, 0.0, selected_cs=initial_cs)
         return objective
 
+    qr_search_start = time.perf_counter()
     best_qr, best_qr_objective, qr_history = _golden_section_search(
         qr_objective,
         iterations=search_iterations,
     )
+    qr_search_seconds = time.perf_counter() - qr_search_start
     logger.info("Selected epsilon_qr=%.6f with wo-input relative MSE %.6e", best_qr, best_qr_objective)
 
     def aw_objective(value: float) -> float:
-        objective, _ = objective_for(best_qr, value)
+        objective, _, _ = objective_for(best_qr, value, selected_cs=initial_cs)
         return objective
 
+    aw_search_start = time.perf_counter()
     best_aw, best_aw_objective, aw_history = _golden_section_search(
         aw_objective,
         iterations=search_iterations,
     )
+    aw_search_seconds = time.perf_counter() - aw_search_start
     logger.info("Selected epsilon_aw=%.6f with wo-input relative MSE %.6e", best_aw, best_aw_objective)
 
-    final_objective, final_achieved = objective_for(best_qr, best_aw)
+    final_objective, final_stage_summary, _ = objective_for(best_qr, best_aw, selected_cs=initial_cs)
     _restore_module_weights(model, weight_backups, qkv_specs)
     return best_qr, best_aw, {
         "enabled": True,
@@ -268,21 +341,40 @@ def optimize_attention_stage_mixing(
             "epsilon_qr": 0.0,
             "epsilon_aw": 0.0,
             "wo_input_relative_mse": float(initial_objective),
-            "achieved_rates": initial_achieved,
+            "selected_c_by_name": initial_cs,
+            "quantization_mode": initial_stage_summary["search_mode"],
+            "quantization_seconds": float(initial_seconds),
+            "achieved_rates": initial_stage_summary["achieved_rates"],
+            "achieved_stage_effective_rate": float(initial_stage_summary["achieved_stage_effective_rate"]),
+            "achieved_stage_entropy_rate": float(initial_stage_summary["achieved_stage_entropy_rate"]),
+            "achieved_stage_huffman_rate": float(initial_stage_summary["achieved_stage_huffman_rate"]),
         },
         "epsilon_qr": float(best_qr),
         "epsilon_aw": float(best_aw),
         "epsilon_qr_objective": float(best_qr_objective),
         "epsilon_aw_objective": float(best_aw_objective),
         "final_wo_input_relative_mse": float(final_objective),
-        "final_achieved_rates": final_achieved,
+        "fixed_c_used_during_search": initial_cs,
+        "final_achieved_rates": final_stage_summary["achieved_rates"],
+        "final_stage_effective_rate": float(final_stage_summary["achieved_stage_effective_rate"]),
+        "final_stage_entropy_rate": float(final_stage_summary["achieved_stage_entropy_rate"]),
+        "final_stage_huffman_rate": float(final_stage_summary["achieved_stage_huffman_rate"]),
         "epsilon_qr_history": qr_history,
         "epsilon_aw_history": aw_history,
         "objective": "Relative MSE at the o_proj input over the calibration set after quantizing q_proj/k_proj/v_proj.",
+        "timing": {
+            "initial_rate_calibration_seconds": float(initial_seconds),
+            "initial_candidate_total_seconds": float(initial_seconds),
+            "epsilon_qr_search_seconds": float(qr_search_seconds),
+            "epsilon_aw_search_seconds": float(aw_search_seconds),
+            "objective_evaluations": int(timing["objective_evaluations"]),
+            "objective_quantization_seconds_total": float(timing["quantization_seconds_total"]),
+            "objective_forward_seconds_total": float(timing["forward_seconds_total"]),
+        },
         "paper_alignment": {
             "rate_calibration": "Binary-search c at epsilon_qr=0 and epsilon_aw=0 before mixing search.",
-            "drift_mixing": "Golden-section search epsilon_qr in [0,1] with epsilon_aw fixed at 0.",
-            "attention_weighting": "Golden-section search epsilon_aw in [0,1] with epsilon_qr fixed at epsilon_qr*.",
+            "drift_mixing": "Golden-section search epsilon_qr in [0,1] with epsilon_aw fixed at 0 while reusing the step-1 q/k/v scales.",
+            "attention_weighting": "Golden-section search epsilon_aw in [0,1] with epsilon_qr fixed at epsilon_qr* while reusing the step-1 q/k/v scales.",
             "final_quantization": "Final q/k/v quantization reruns binary search over c with selected epsilon_qr* and epsilon_aw*.",
         },
     }
