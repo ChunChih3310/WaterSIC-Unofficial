@@ -2,17 +2,16 @@
 
 ## Critical Blockers
 
-1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the rescaler-enabled validation point, but it is still far from the paper’s `10.57` PPL point. Current best completed result: `15.7029` PPL at `2.9984` effective bits, an absolute gap of `+5.1329`.
-2. Full-model per-attention-block adaptive mixing search has been implemented in the general sequential pipeline, but its upgraded full-model run is not finished yet. Until that run lands, the best completed point still uses fixed `epsilon_qr` / `epsilon_aw` values.
-3. The adaptive-mixing full-model run is runtime-heavy at the paper-faithful `15`-step search setting. The first attention block completed the initial `epsilon_qr = 0`, `epsilon_aw = 0` rate-calibration step, but the subsequent search is already clearly overnight-scale rather than a short follow-up run.
-4. The full-model runs still use only `8` calibration chunks. This remains a likely quality limiter even after the major correctness bugs were fixed.
-5. The current WikiText-2 loader tokenizes the full concatenated split before chunking. It works, but it is inefficient and emits a long-sequence tokenizer warning.
+1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits remains the rescaler-enabled point, and it is still far from the paper’s `10.57` PPL point. Current best completed result: `15.7029` PPL at `2.9984` effective bits, an absolute gap of `+5.1329`.
+2. The general-pipeline adaptive-mixing upgrade is now fully implemented and fully benchmarked, but it regressed final PPL to `16.6096` despite improving the local QKV search objective. This is now the clearest remaining quality-recovery blocker.
+3. The full-model runs still use only `8` calibration chunks. Calibration size is still likely limiting, but it is not yet the clearest immediate blocker because the adaptive-mixing upgrade itself currently hurts end-task quality.
+4. The current WikiText-2 loader tokenizes the full concatenated split before chunking. It works, but it is inefficient and emits a long-sequence tokenizer warning.
 
 ## Implementation Gaps
 
 1. The repo now has a full-model `Llama-3.2-1B` result, but not yet a paper-matching one. The remaining work is quality recovery, not basic end-to-end execution.
-2. Diagonal rescalers are now validated on the full-model path and improve PPL, but they have not yet been combined with the new full-model adaptive-mixing search result.
-3. The upgraded general-pipeline adaptive-mixing search is in place, but the full-model benchmark for that upgraded path is still running and may require substantially more overnight runtime than the rescaler-only path.
+2. Diagonal rescalers are now validated on the full-model path and improve PPL materially.
+3. The upgraded general-pipeline adaptive-mixing search is now validated end-to-end, but its current local objective/search coupling does not improve full-model quality.
 4. The full-model runs use only `8` calibration sequences as a runtime shortcut; this is smaller than a fully paper-faithful calibration budget.
 5. Qwen3-8B was intentionally not run in this round.
 
@@ -86,19 +85,37 @@
    - diagnosis:
      - expected, not a bug
      - no prior quantized layer exists before the first QKV stage, so the paired reference path has zero drift there
+14. The upgraded full-model adaptive-mixing run completed successfully:
+   - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml`
+   - achieved effective bitwidth: `2.9984`
+   - entropy bitwidth: `2.9865`
+   - Huffman bitwidth: `3.0368`
+   - side-information overhead: `0.0119`
+   - baseline PPL: `9.7041`
+   - quantized PPL: `16.6096`
+   - runtime: `74349.91s`
+   - peak memory: `18.65 GiB`
+   - quantization anomalies: none
+15. The adaptive-mixing search is therefore validated as:
+   - implemented for all attention blocks
+   - numerically stable
+   - able to improve the local `wo`-input objective
+   - not yet beneficial for final full-model PPL
+16. The best completed `Llama-3.2-1B` point is still the rescaler-only run:
+   - `15.7029` PPL at `2.9984` effective bits
+   - better than the no-rescaler baseline by `1.1654`
+   - better than the adaptive-mixing upgraded run by `0.9067`
 
 ## Not Yet Valid To Claim
 
 1. It is not yet valid to claim a faithful reproduction of the paper’s final `Llama-3.2-1B` `3.00`-bit result, because the best completed run is still `+5.1329` PPL worse than the paper.
-2. It is not yet valid to claim that the current best completed run is fully paper-faithful, because the new general-pipeline per-block adaptive-mixing search has not finished a full-model benchmark yet.
+2. It is not yet valid to claim that the current repo reproduces the paper’s final adaptive-mixing behavior, because the implemented full-model search currently worsens PPL instead of improving it.
 3. It is not yet valid to claim that the current repo reproduces the paper’s final accuracy-quality frontier; the repo now reproduces the end-to-end pipeline, not yet the final paper number.
 4. It is not yet valid to claim that Qwen3-8B reproduction is done; it was intentionally not run in this round.
 
 ## Immediate Next Step
 
-1. Keep the successful no-rescaler full-model run as the A reference point and the rescaler validation run as the new best completed B point.
-2. Finish the upgraded full-model run with:
-   - diagonal rescalers enabled
-   - per-attention-block adaptive mixing search enabled
-3. Compare A/B/C directly on PPL, bitrate, top worst layers, and per-kind distortion.
-4. Increase calibration size beyond `8` chunks only after the upgraded quality-recovery path is benchmarked cleanly.
+1. Keep the rescaler-only run as the current best completed reference point.
+2. Treat adaptive mixing as the current highest-value debug target, because it regressed global PPL despite improving local QKV objectives.
+3. Do not spend more runtime on larger calibration yet; first verify why the adaptive-mixing objective helps locally but not globally.
+4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is better understood.

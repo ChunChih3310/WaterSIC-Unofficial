@@ -339,3 +339,63 @@
     - the run confirmed the paper-aligned initial search step at layer 0:
       - `Initial QKV rate-calibration at epsilon_qr=0 epsilon_aw=0 reached wo-input relative MSE 7.913040e-03`
     - after that point, the first layer-0 search remained active long enough to classify this run as overnight-scale rather than a short follow-up
+- Completed the upgraded full-model quality-recovery run:
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_20260314_033153.log`
+  - saved report bundle:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing.md`
+    - `outputs/reports/full_llama32_1b_adaptive_mixing_upgrade_report.md`
+    - `outputs/reports/full_llama32_1b_quality_recovery_comparison.md`
+  - saved artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing/`
+- Adaptive-mixing upgraded run result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - per-attention-block adaptive mixing search enabled
+  - calibration chunks: `8`
+  - target global bitwidth: `3.0000`
+  - achieved effective global bitwidth: `2.9984`
+  - entropy average bitwidth: `2.9865`
+  - Huffman average bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `16.6096`
+  - runtime: `74349.91s`
+  - quantization anomalies: none
+  - peak GPU memory: `18.65 GiB`
+- What the adaptive-mixing run proved:
+  - the general-pipeline adaptive-mixing search now executes end-to-end on the full model
+  - all attention blocks were optimized with searched `epsilon_qr` / `epsilon_aw`
+  - the run remained numerically sane through all `16` layers
+  - the local `wo`-input search objective improved consistently within each optimized attention block
+- What the adaptive-mixing run did not achieve:
+  - it did not beat the rescaler-only best point
+  - PPL comparison:
+    - no-rescaler: `16.8684`
+    - rescaler-only: `15.7029`
+    - rescaler + mixing search: `16.6096`
+  - therefore the upgraded run is:
+    - `0.2587` PPL better than the no-rescaler baseline
+    - `0.9067` PPL worse than the rescaler-only best point
+- Distortion diagnosis after the upgraded run:
+  - mean relative weight MSE improved substantially for QKV compared with the rescaler-only run:
+    - `q_proj`: `0.0696 -> 0.0611`
+    - `k_proj`: `0.0983 -> 0.0898`
+    - `v_proj`: `0.0876 -> 0.0806`
+  - but the dominant residual-path error kinds did not improve:
+    - `o_proj`: `0.3170 -> 0.3175`
+    - `down_proj`: `0.3023 -> 0.3024`
+  - late-layer `o_proj` outliers remained the top failure modes:
+    - `model.layers.11.self_attn.o_proj`: `0.4777`
+    - `model.layers.13.self_attn.o_proj`: `0.4647`
+    - `model.layers.12.self_attn.o_proj`: `0.4202`
+- Conclusion after the completed upgraded run:
+  - the current best completed `Llama-3.2-1B` point is still the rescaler-only run
+  - adaptive mixing is no longer missing, but it is not yet helping the end-task metric
+  - the immediate next blocker is not basic stability, but objective mismatch:
+    - the local adaptive-mixing optimization improves `wo`-input distortion
+    - that improvement does not currently translate into better full-model WikiText-2 PPL
+  - calibration size beyond `8` chunks is still likely limiting, but it is not yet the single clearest next move while the adaptive-mixing path is still regressing the full-model result
