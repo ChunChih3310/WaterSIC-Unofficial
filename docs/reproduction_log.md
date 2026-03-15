@@ -457,7 +457,7 @@
     - staged same-layer stat refresh enabled
     - rescalers enabled
     - repaired adaptive-mixing search enabled
-- Latest confirmed status for the in-progress repaired full-model run at the time of this log update:
+- Intermediate live status before the repaired full-model run completed:
   - layer 0 completed
   - layer 1 completed
   - layer 2 completed
@@ -468,3 +468,63 @@
     - `epsilon_aw = 0.837561`
     - timestamp: `2026-03-15 04:54:34`
   - no numerical instability observed so far
+- Completed the repaired full-model run:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_20260315_015946.log`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired.md`
+  - artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired/`
+- Repaired full-model result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - repaired adaptive mixing enabled
+  - calibration chunks: `8`
+  - target global bitwidth: `3.0000`
+  - achieved effective bitwidth: `2.9984`
+  - entropy bitwidth: `2.9865`
+  - Huffman bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `16.2796`
+  - quantization runtime: `30142.43s`
+  - total runtime: `30248.17s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Comparison against prior full-model points after the repaired run:
+  - no-rescaler:
+    - PPL: `16.8684`
+  - rescaler-only:
+    - PPL: `15.7029`
+  - old adaptive mixing:
+    - PPL: `16.6096`
+  - repaired adaptive mixing:
+    - PPL: `16.2796`
+  - direct deltas:
+    - repaired vs old adaptive mixing: `-0.3300`
+    - repaired vs rescaler-only: `+0.5767`
+    - repaired vs paper `10.57`: `+5.7096`
+- Distortion diagnosis after the repaired full-model run:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.3176`
+    - `down_proj`: `0.3051`
+    - `q_proj`: `0.0604`
+    - `k_proj`: `0.0886`
+    - `v_proj`: `0.0797`
+  - worst layers by relative weight MSE:
+    - `model.layers.11.self_attn.o_proj`: `0.4796`
+    - `model.layers.13.self_attn.o_proj`: `0.4597`
+    - `model.layers.12.self_attn.o_proj`: `0.4185`
+    - `model.layers.4.self_attn.o_proj`: `0.3997`
+    - `model.layers.0.self_attn.o_proj`: `0.3934`
+- Conclusion after the repaired run:
+  - the repaired adaptive-mixing path is numerically stable and substantially faster than the old adaptive-mixing path
+  - it partially fixes the old adaptive-mixing regression but does not beat the rescaler-only best point
+  - the current best completed `Llama-3.2-1B` point is still:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler`
+    - `15.7029` PPL at `2.9984` effective bits
+  - with repaired adaptive mixing no longer the dominant blocker, calibration size beyond `8` chunks is now the most likely next limiter on the best validated path
+  - Qwen3-8B remains intentionally deferred
