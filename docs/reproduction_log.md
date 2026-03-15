@@ -574,3 +574,69 @@
   - there is not yet a new completed full-model PPL beyond the `8`-chunk anchor
   - early local evidence strongly suggests calibration helps the dominant residual-path layers on the stable path
   - the next blocking resource is wall-clock runtime, not a new numerical failure
+- Completed the `16`-chunk rescaler-only full-model run:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib16_20260315_133857.log`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_calib16.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_calib16.md`
+  - artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_calib16/`
+- Finished `16`-chunk result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - adaptive mixing disabled
+  - calibration chunks: `16`
+  - target global bitwidth: `3.0000`
+  - achieved effective bitwidth: `2.9984`
+  - entropy bitwidth: `2.9865`
+  - Huffman bitwidth: `3.0371`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `12.4574`
+  - quantization runtime: `22405.30s`
+  - total runtime: `22502.96s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Direct comparison against the previous best completed point:
+  - prior best:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler`
+    - calibration chunks: `8`
+    - PPL: `15.7029`
+  - new best:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+    - calibration chunks: `16`
+    - PPL: `12.4574`
+  - direct delta:
+    - `-3.2456` PPL
+  - paper gap:
+    - `8` chunks: `+5.1329`
+    - `16` chunks: `+1.8874`
+- Distortion diagnosis after the completed `16`-chunk run:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.2382`
+    - `down_proj`: `0.1709`
+    - `q_proj`: `0.0603`
+    - `k_proj`: `0.0854`
+    - `v_proj`: `0.0756`
+  - dominant worst layers remain `o_proj`, but with much lower magnitude:
+    - `model.layers.13.self_attn.o_proj`: `0.3427`
+    - `model.layers.11.self_attn.o_proj`: `0.3223`
+    - `model.layers.0.self_attn.o_proj`: `0.3108`
+    - `model.layers.12.self_attn.o_proj`: `0.3035`
+    - `model.layers.4.self_attn.o_proj`: `0.2935`
+  - key improvement versus the `8`-chunk rescaler-only point:
+    - `o_proj` mean relative MSE: `0.3170 -> 0.2382`
+    - `down_proj` mean relative MSE: `0.3023 -> 0.1709`
+- Updated conclusion after the completed `16`-chunk point:
+  - increasing calibration from `8` to `16` chunks materially improves the current best validated path
+  - calibration now looks like the strongest remaining limiter on the stable rescaler-only full-model path
+  - adaptive mixing remains implemented and stable, but it is no longer the highest-signal next knob
+  - the current best completed `Llama-3.2-1B` point is now:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+    - `12.4574` PPL at `2.9984` effective bits
+  - the next recommended experiment is the `32`-chunk rescaler-only run on the same validated path
+  - Qwen3-8B remains intentionally deferred
