@@ -17,8 +17,8 @@ layer:
   row_sample_fraction: 0.1
   golden_section_iterations: 10
   dead_feature_tau: 1.0e-3
-  epsilon_qr: 0.0031056200151418556
-  epsilon_aw: 0.7983738762488434
+  epsilon_qr: 0.0
+  epsilon_aw: 0.0
   max_rescaler_iters: 4
   rescaler_ridge: 1.0e-6
   seed: 0
@@ -27,6 +27,6 @@ layer:
   use_residual_correction: true
   residual_scale: 1.0
   use_attention_weighting: true
-  use_adaptive_mixing: true
+  use_adaptive_mixing: false
   optimize_adaptive_mixing: false
   spacing_strategy: watersic
