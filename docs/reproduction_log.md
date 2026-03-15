@@ -528,3 +528,49 @@
     - `15.7029` PPL at `2.9984` effective bits
   - with repaired adaptive mixing no longer the dominant blocker, calibration size beyond `8` chunks is now the most likely next limiter on the best validated path
   - Qwen3-8B remains intentionally deferred
+- Started the calibration-size sweep on the best validated rescaler-only path:
+  - stable anchor config cloned to:
+    - `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib8_anchor.yaml`
+    - `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml`
+    - `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml`
+  - safe runtime change:
+    - cached repo-local WikiText-2 token blocks under `outputs/stats/wikitext2_cache/`
+    - commit: `6173f21`
+    - test: `tests/test_wikitext2.py`
+- Anchor handling for the sweep:
+  - the completed `8`-chunk rescaler-only run remains the anchor:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler`
+    - effective bits: `2.9984`
+    - PPL: `15.7029`
+  - a redundant `8`-chunk rerun was started with the cached loader:
+    - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib8_anchor_20260315_133717.log`
+  - the rerun matched the expected early layer-0 and layer-1 rates and errors, then was stopped to free resources for the new `16`-chunk point
+- Active `16`-chunk sweep run:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib16_20260315_133857.log`
+  - current status at this update:
+    - layer `0` completed in `2232.22s`
+    - layer `1` remains in progress
+    - numerically stable so far
+    - no NaN/Inf, failed Cholesky, or residual-path blow-up observed
+- Current partial `16`-chunk evidence vs completed `8`-chunk anchor:
+  - layer `0`:
+    - `q_proj`: `0.1541 -> 0.0965`
+    - `k_proj`: `0.2057 -> 0.1285`
+    - `v_proj`: `0.2044 -> 0.1278`
+    - `o_proj`: `0.3936 -> 0.3108`
+    - `gate_proj`: `0.0598 -> 0.0476`
+    - `up_proj`: `0.0586 -> 0.0467`
+    - `down_proj`: `0.3635 -> 0.1634`
+  - layer `1`:
+    - `q_proj`: `0.0690 -> 0.0619`
+    - `k_proj`: `0.1097 -> 0.0980`
+    - `v_proj`: `0.0983 -> 0.0877`
+    - `o_proj`: `0.2754 -> 0.2080`
+- `32`-chunk handling:
+  - a `32`-chunk launch was briefly attempted on a third GPU
+  - it was stopped immediately to avoid resource contention before the `16`-chunk point is complete
+- Current honest conclusion from the sweep:
+  - there is not yet a new completed full-model PPL beyond the `8`-chunk anchor
+  - early local evidence strongly suggests calibration helps the dominant residual-path layers on the stable path
+  - the next blocking resource is wall-clock runtime, not a new numerical failure

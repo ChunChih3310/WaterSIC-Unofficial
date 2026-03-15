@@ -51,3 +51,22 @@ Paper reference at `3.00` bits:
 - Effective bits: `2.9984`
 - Quantized PPL: `15.7029`
 - Status: best completed `Llama-3.2-1B` point in this repo as of this update
+
+## Calibration Sweep Status
+
+The calibration sweep is active but does not yet have a new completed full-model point.
+
+- anchor remains the completed `8`-chunk rescaler-only point above
+- active run:
+  - `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib16_20260315_133857.log`
+- deferred until the `16`-chunk result is complete:
+  - `32`-chunk full-model run
+
+Early local evidence from the active `16`-chunk run is favorable:
+
+- `l0 o_proj` relative weight MSE: `0.3936 -> 0.3108`
+- `l0 down_proj` relative weight MSE: `0.3635 -> 0.1634`
+- `l1 o_proj` relative weight MSE: `0.2754 -> 0.2080`
+
+This is promising for the calibration-limiter hypothesis, but it is not yet a completed benchmark result.
