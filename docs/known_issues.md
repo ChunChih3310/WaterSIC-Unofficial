@@ -222,7 +222,8 @@
    - first: prefer GPUs with `0` visible compute processes
    - second: prefer lower used memory / higher free memory
    - third: use utilization only as a tie-breaker
-   - if no GPU meets the idle thresholds, the selector warns and chooses the least-bad GPU by the same rule
+   - if no GPU meets the idle thresholds, the default selector now fails instead of silently taking a busy GPU
+   - choosing the least-bad busy GPU now requires an explicit `device.allow_busy_fallback: true` override
 32. The GPU assignment path now sets `CUDA_VISIBLE_DEVICES` before any CUDA initialization:
    - this avoids the old logical/physical mismatch where the selector could choose physical GPU `N` but torch still initialize on physical GPU `0`
    - runs now log both logical torch device and physical GPU mapping explicitly

@@ -4,6 +4,8 @@ import logging
 import os
 import subprocess
 
+import pytest
+
 from watersic.utils.device import pick_idle_gpu
 
 
@@ -44,7 +46,7 @@ def test_pick_idle_gpu_prefers_zero_process_gpu(monkeypatch) -> None:
 
     assert selection.gpu_index == 1
     assert selection.cuda_visible_devices == "1"
-    assert selection.torch_device == "cuda:0"
+    assert selection.torch_device == "cuda"
     assert selection.logical_device_index == 0
     assert selection.reason == "idle_gpu_selected"
     assert any("gpu=1" in line and "processes=0" in line for line in selection.ranking)
@@ -57,8 +59,8 @@ def test_pick_idle_gpu_prefers_more_free_memory_when_process_free(monkeypatch) -
     _mock_nvidia_smi(
         monkeypatch,
         gpu_output=(
-            "0, GPU-more-free, NVIDIA RTX A6000, 1024, 20480, 21504, 25\n"
-            "1, GPU-less-free, NVIDIA RTX A6000, 1024, 8192, 9216, 5\n"
+            "0, GPU-more-free, NVIDIA RTX A6000, 1024, 44000, 45024, 25\n"
+            "1, GPU-less-free, NVIDIA RTX A6000, 1024, 32000, 33024, 5\n"
         ),
         process_output="",
     )
@@ -66,11 +68,11 @@ def test_pick_idle_gpu_prefers_more_free_memory_when_process_free(monkeypatch) -
     selection = pick_idle_gpu()
 
     assert selection.gpu_index == 0
-    assert selection.reason == "least_bad_gpu_selected"
-    assert selection.warning is not None
+    assert selection.reason == "idle_gpu_selected"
+    assert selection.warning is None
 
 
-def test_pick_idle_gpu_warns_and_chooses_least_bad_when_all_busy(monkeypatch, caplog) -> None:
+def test_pick_idle_gpu_raises_when_all_gpus_busy_by_default(monkeypatch, caplog) -> None:
     monkeypatch.setattr("torch.cuda.is_available", lambda: True)
     monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
     _mock_nvidia_smi(
@@ -88,7 +90,33 @@ def test_pick_idle_gpu_warns_and_chooses_least_bad_when_all_busy(monkeypatch, ca
     logger = logging.getLogger("watersic.test_device")
 
     with caplog.at_level(logging.INFO):
-        selection = pick_idle_gpu(logger=logger)
+        with pytest.raises(RuntimeError) as exc_info:
+            pick_idle_gpu(logger=logger)
+    message = str(exc_info.value)
+
+    assert "refusing to auto-select a busy GPU" in message
+    assert "No GPU met the idle thresholds" in caplog.text
+
+
+def test_pick_idle_gpu_warns_and_chooses_least_bad_with_explicit_override(monkeypatch, caplog) -> None:
+    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    _mock_nvidia_smi(
+        monkeypatch,
+        gpu_output=(
+            "0, GPU-one-proc, NVIDIA RTX A6000, 8192, 40948, 49140, 5\n"
+            "1, GPU-two-proc, NVIDIA RTX A6000, 4096, 45044, 49140, 0\n"
+        ),
+        process_output=(
+            "GPU-one-proc, 2001, 8192\n"
+            "GPU-two-proc, 2002, 2048\n"
+            "GPU-two-proc, 2003, 2048\n"
+        ),
+    )
+    logger = logging.getLogger("watersic.test_device")
+
+    with caplog.at_level(logging.INFO):
+        selection = pick_idle_gpu(device_config={"allow_busy_fallback": True}, logger=logger)
 
     assert selection.gpu_index == 0
     assert selection.reason == "least_bad_gpu_selected"
@@ -110,5 +138,5 @@ def test_pick_idle_gpu_respects_cuda_visible_devices(monkeypatch) -> None:
 
     assert selection.reason == "cuda_visible_devices_respected"
     assert selection.cuda_visible_devices == "6"
-    assert selection.torch_device == "cuda:0"
+    assert selection.torch_device == "cuda"
     assert selection.gpu_index == 6

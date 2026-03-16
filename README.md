@@ -69,7 +69,8 @@ Runtime device selection follows a conservative policy:
   - `0` visible compute processes
   - used memory below `device.max_used_memory_gib`
   - free memory above `device.min_free_memory_gib`
-- if no GPU meets those thresholds, the selector logs a warning and chooses the least-bad GPU by the same ranking rule
+- if no GPU meets those thresholds, the default behavior is to fail clearly and stop
+- only an explicit `device.allow_busy_fallback: true` override allows choosing the least-bad busy GPU
 - auto-selection happens before any CUDA initialization so the later torch device mapping is safe
 - after selection, torch uses logical `cuda:0`, which maps to the chosen physical GPU via `CUDA_VISIBLE_DEVICES`
 
@@ -80,6 +81,7 @@ device:
   override:
   min_free_memory_gib: 24.0
   max_used_memory_gib: 2.0
+  allow_busy_fallback: false
 ```
 
 ## Main Commands
@@ -141,7 +143,8 @@ python scripts/make_report.py
 ## Troubleshooting
 
 - If GPU selection is wrong or you want to pin a device manually, set `CUDA_VISIBLE_DEVICES` before launching a script.
-- If all GPUs are partially occupied, the selector will log the full ranking and warn before choosing the least-bad device.
+- If all GPUs are partially occupied, the default selector now fails instead of silently taking a busy GPU.
+- If you intentionally want the least-bad busy GPU, set `device.allow_busy_fallback: true` in the quant config and inspect the logged ranking carefully.
 - If a model is gated on Hugging Face, ensure the token in `.env` is valid and has access.
 - If `output_attentions=True` causes a model-specific issue, reduce to the smoke config first and inspect the saved log in `outputs/logs/`.
 - If a quantization run fails on a covariance or rescaler step, inspect [docs/known_issues.md](/nfs_tmp/Compression_team/src/WaterSIC/docs/known_issues.md) and the run log before changing defaults.

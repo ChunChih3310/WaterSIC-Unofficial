@@ -24,6 +24,7 @@ class DeviceSelection:
 class AutoGpuPolicy:
     min_free_memory_gib: float = 24.0
     max_used_memory_gib: float = 2.0
+    allow_busy_fallback: bool = False
 
     @property
     def min_free_memory_mib(self) -> float:
@@ -92,6 +93,7 @@ def _build_policy(device_config: dict[str, Any] | None) -> AutoGpuPolicy:
     return AutoGpuPolicy(
         min_free_memory_gib=float(config.get("min_free_memory_gib", 24.0)),
         max_used_memory_gib=float(config.get("max_used_memory_gib", 2.0)),
+        allow_busy_fallback=bool(config.get("allow_busy_fallback", False)),
     )
 
 
@@ -174,7 +176,7 @@ def pick_idle_gpu(
         primary_visible = existing_visible.split(",")[0].strip() if existing_visible else ""
         physical_index = int(primary_visible) if primary_visible.isdigit() else None
         return DeviceSelection(
-            torch_device="cuda:0",
+            torch_device="cuda",
             cuda_visible_devices=existing_visible,
             reason="cuda_visible_devices_respected",
             gpu_index=physical_index,
@@ -238,6 +240,13 @@ def pick_idle_gpu(
     best = ranked[0]
     warning: str | None = process_warning
     if not any(bool(row["is_idle"]) for row in ranked):
+        no_idle_message = (
+            "No GPU met the idle thresholds; refusing to auto-select a busy GPU without device.allow_busy_fallback=true."
+        )
+        if not policy.allow_busy_fallback:
+            if logger is not None:
+                logger.error(no_idle_message)
+            raise RuntimeError(no_idle_message)
         warning = (
             "No GPU met the idle thresholds; selected the least-bad device by zero-process, used-memory, free-memory, and utilization ranking."
             if warning is None
@@ -268,7 +277,7 @@ def pick_idle_gpu(
             ranking=ranking,
         )
     return DeviceSelection(
-        torch_device="cuda:0",
+        torch_device="cuda",
         cuda_visible_devices=str(selected_index),
         reason="idle_gpu_selected" if warning is None else "least_bad_gpu_selected",
         gpu_index=selected_index,

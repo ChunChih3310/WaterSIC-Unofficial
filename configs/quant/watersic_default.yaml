@@ -8,6 +8,7 @@ device:
   override:
   min_free_memory_gib: 24.0
   max_used_memory_gib: 2.0
+  allow_busy_fallback: false
 calibration:
   split: train
   sequence_length: 2048

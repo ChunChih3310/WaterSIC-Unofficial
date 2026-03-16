@@ -15,6 +15,10 @@
   - physical GPU chosen by the selector
   - logical torch device after remapping (`cuda:0`)
   - the exact `CUDA_VISIBLE_DEVICES` mapping used
+- Tightened the fail-safe policy:
+  - default auto-selection now refuses to grab a busy GPU
+  - if no GPU meets the idle thresholds, the program raises a clear error and stops
+  - choosing the least-bad busy GPU now requires an explicit `device.allow_busy_fallback: true` override
 - Added explicit idle thresholds:
   - `device.min_free_memory_gib`
   - `device.max_used_memory_gib`
