@@ -742,3 +742,27 @@
   - `outputs/reports/full_llama32_1b_calibration_sweep_report.md`
   - `outputs/reports/full_llama32_1b_quality_recovery_comparison.md`
   - `docs/known_issues.md`
+- Ran a short A6000 batch-size feasibility probe without launching any new long quantization experiment.
+  - collection probe:
+    - real `collect_layer_statistics()` path
+    - layer `0` QKV stage
+    - both model and reference model resident on GPU
+    - `8` calibration chunks
+  - adaptive probe:
+    - real `_collect_module_inputs()` / `_module_input_relative_mse()` path
+    - `model.layers.15.self_attn.o_proj`
+    - same `8` calibration chunks
+  - eval probe:
+    - first `8` WikiText-2 test chunks
+- Probe conclusion on the local A6000:
+  - `batch_size=2` is the largest safe batch size for the real reference-stat collection path
+  - `batch_size=4` and `8` OOM on collection
+  - adaptive candidate forward fits up to `8`, but throughput only improves by about `4.8%`
+  - evaluation throughput changes are negligible
+- Updated paper-scale runtime estimate from the probe:
+  - rescaler-only mainline at `batch_size=2`: about `37.5h`
+  - repaired adaptive mixing at `batch_size=2`: about `63.7h`
+  - even with a hypothetical split batch size (`collection=2`, `adaptive objective=8`), adaptive mixing would still be about `62.7h`
+- Saved:
+  - `outputs/reports/full_llama32_1b_batchsize_runtime_estimate_probe.json`
+  - `outputs/reports/full_llama32_1b_batchsize_runtime_estimate.md`

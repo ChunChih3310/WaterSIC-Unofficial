@@ -9,9 +9,15 @@
 5. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
 6. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
 7. Paper-scale calibration on the current A6000 setup is expensive even on the stable mainline path:
-   - rescaler-only mainline estimate: about `40.5h`
-   - repaired adaptive-mixing estimate: about `66.7h`
+   - batch-1 rescaler-only mainline estimate: about `40.5h`
+   - batch-2 rescaler-only mainline estimate: about `37.5h`
+   - batch-1 repaired adaptive-mixing estimate: about `66.7h`
+   - batch-2 repaired adaptive-mixing estimate: about `63.7h`
    - the adaptive-mixing paper-scale path is therefore currently too expensive for normal iterative debugging
+8. Short A6000 probing now shows that the real reference-stat collection path, not the adaptive objective forward path, is the batch-size limiter:
+   - `batch_size=2` fits on collection
+   - `batch_size=4` and `8` OOM on collection
+   - adaptive objective forward fits through `batch_size=8`, but throughput gains are minor
 
 ## Implementation Gaps
 
@@ -22,6 +28,7 @@
 5. Adaptive mixing remains implemented, paper-audited, and stable, but it is not yet the best quality path at full-model scope.
 6. Qwen3-8B was intentionally not run in this round.
 7. New runs will report exact Huffman shortest/longest symbol lengths, but older reports can only mark those fields as unavailable unless the quantization run is repeated.
+8. If larger batch sizes are used later, `batch_size=2` is the current evidence-backed ceiling for the full reference-stat mainline path on this A6000 without changing experiment structure.
 
 ## Already Validated
 
@@ -201,6 +208,15 @@
 29. Huffman shortest/longest symbol-length reporting is now implemented in the active pipeline:
    - exact for new runs
    - unavailable for older historical runs that did not serialize integer Huffman symbols
+30. A short real batch-size probe has now been completed on the A6000:
+   - collection path:
+     - `bs=1` peak `18.65 GiB`
+     - `bs=2` peak `32.69 GiB`
+     - `bs=4` OOM at peak attempt `43.73 GiB`
+     - `bs=8` OOM at peak attempt `41.08 GiB`
+   - adaptive candidate objective path:
+     - fits through `bs=8`
+     - throughput improvement from `bs=1` to `bs=8` is only about `4.8%`
 
 ## Not Yet Valid To Claim
 
@@ -210,10 +226,11 @@
 4. It is not yet valid to claim that Qwen3-8B reproduction is done; it was intentionally not run in this round.
 5. It is not yet valid to claim that calibration is fully saturated on the stable path, because only `8`, `16`, and `32` chunks have been completed so far.
 6. It is not yet valid to claim that paper-scale adaptive mixing is a practical next benchmark path on the current implementation, because the current estimate is about `66.7h` on one A6000 and no quality win over the rescaler-only reference has been demonstrated.
+7. It is not yet valid to claim that simply increasing batch size will make paper-scale adaptive mixing practical, because the safe mainline collection ceiling is only `bs=2` and the lighter adaptive objective path gains little from larger batches.
 
 ## Immediate Next Step
 
 1. Keep the `32`-chunk rescaler-only run as the current best completed reference point.
 2. Do not launch a paper-scale adaptive-mixing run on the current implementation before more runtime work; it is currently too expensive relative to its demonstrated quality.
-3. When long mainline runs resume, the highest-signal next experiment remains a larger-calibration rescaler-only run on the same validated path.
+3. When long mainline runs resume, use `batch_size=2` on the validated rescaler-only path rather than `1`; this is the only safe batch-size increase currently supported by the A6000 probe.
 4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further.
