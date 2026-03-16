@@ -14,6 +14,8 @@ class BitrateMetrics:
     raw_average_bitwidth: float
     entropy_average_bitwidth: float
     huffman_average_bitwidth: float
+    huffman_shortest_symbol_length_bits: int
+    huffman_longest_symbol_length_bits: int
     side_information_average_bitwidth: float
     final_effective_average_bitwidth: float
 
@@ -33,13 +35,15 @@ def estimate_bitrate_metrics(symbols: torch.Tensor, *, side_information_bits: fl
     num_weights = len(flat_list)
     raw_avg = _fixed_width_for_signed_integers(flat)
     entropy_avg = empirical_entropy(flat_list)
-    huffman_avg = canonical_huffman_report(flat_list).average_code_length_bits
+    huffman = canonical_huffman_report(flat_list)
     side_avg = side_information_bits / max(num_weights, 1)
     return BitrateMetrics(
         num_weights=num_weights,
         raw_average_bitwidth=raw_avg,
         entropy_average_bitwidth=entropy_avg,
-        huffman_average_bitwidth=huffman_avg,
+        huffman_average_bitwidth=huffman.average_code_length_bits,
+        huffman_shortest_symbol_length_bits=huffman.shortest_code_length_bits,
+        huffman_longest_symbol_length_bits=huffman.longest_code_length_bits,
         side_information_average_bitwidth=side_avg,
         final_effective_average_bitwidth=entropy_avg + side_avg,
     )

@@ -13,6 +13,8 @@ class LayerReport:
     raw_bitwidth: float
     entropy_bitwidth: float
     huffman_bitwidth: float
+    huffman_shortest_symbol_length_bits: int | None
+    huffman_longest_symbol_length_bits: int | None
     side_information_bitwidth: float
     weighted_error: float
     applied_damping: float
@@ -37,6 +39,8 @@ class RunReport:
     raw_average_bitwidth: float
     entropy_average_bitwidth: float
     huffman_average_bitwidth: float
+    huffman_shortest_symbol_length_bits: int | None
+    huffman_longest_symbol_length_bits: int | None
     side_information_overhead: float
     perplexity: float | None = None
     notes: list[str] = field(default_factory=list)

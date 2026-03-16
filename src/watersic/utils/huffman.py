@@ -12,6 +12,8 @@ class HuffmanReport:
     num_symbols: int
     entropy_bits: float
     average_code_length_bits: float
+    shortest_code_length_bits: int
+    longest_code_length_bits: int
     code_lengths: dict[int, int]
 
 
@@ -41,10 +43,24 @@ def canonical_huffman_report(symbols: Iterable[int]) -> HuffmanReport:
     counts = Counter(symbols)
     total = sum(counts.values())
     if total == 0:
-        return HuffmanReport(num_symbols=0, entropy_bits=0.0, average_code_length_bits=0.0, code_lengths={})
+        return HuffmanReport(
+            num_symbols=0,
+            entropy_bits=0.0,
+            average_code_length_bits=0.0,
+            shortest_code_length_bits=0,
+            longest_code_length_bits=0,
+            code_lengths={},
+        )
     if len(counts) == 1:
         only_symbol = next(iter(counts))
-        return HuffmanReport(num_symbols=1, entropy_bits=0.0, average_code_length_bits=1.0, code_lengths={int(only_symbol): 1})
+        return HuffmanReport(
+            num_symbols=1,
+            entropy_bits=0.0,
+            average_code_length_bits=1.0,
+            shortest_code_length_bits=1,
+            longest_code_length_bits=1,
+            code_lengths={int(only_symbol): 1},
+        )
 
     heap: list[tuple[int, int, _Node]] = []
     for order, (symbol, freq) in enumerate(sorted(counts.items())):
@@ -71,9 +87,13 @@ def canonical_huffman_report(symbols: Iterable[int]) -> HuffmanReport:
 
     visit(root, 0)
     average_code_length = sum(counts[symbol] * code_lengths[int(symbol)] for symbol in counts) / total
+    shortest_length = min(code_lengths.values())
+    longest_length = max(code_lengths.values())
     return HuffmanReport(
         num_symbols=len(counts),
         entropy_bits=entropy_from_counts(counts),
         average_code_length_bits=average_code_length,
+        shortest_code_length_bits=shortest_length,
+        longest_code_length_bits=longest_length,
         code_lengths=code_lengths,
     )

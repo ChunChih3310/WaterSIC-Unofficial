@@ -5,16 +5,18 @@ Paper reference at `3.00` bits:
 - baseline BF16 PPL: `9.76`
 - WaterSIC PPL: `10.57`
 
+Huffman shortest/longest symbol lengths are now part of the run-report schema. These historical completed runs predate integer-code serialization for exact backfill, so their code-length ranges are shown as `n/a`.
+
 ## Overview
 
-| Run | Config | Effective Bits | Entropy Bits | Huffman Bits | Side-Info Bits | Quantized PPL | Delta vs Paper | Runtime |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `A. no-rescaler 8` | `configs/quant/watersic_llama32_1b_full_reftrue_norescaler.yaml` | `2.9984` | `2.9865` | `3.0368` | `0.0119` | `16.8684` | `+6.2984` | `19408.47s` |
-| `B. rescaler-only 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler.yaml` | `2.9984` | `2.9865` | `3.0368` | `0.0119` | `15.7029` | `+5.1329` | `18525.23s` |
-| `C. old rescaler+mixing 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml` | `2.9984` | `2.9865` | `3.0368` | `0.0119` | `16.6096` | `+6.0396` | `74349.91s` |
-| `D. repaired rescaler+mixing 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml` | `2.9984` | `2.9865` | `3.0368` | `0.0119` | `16.2796` | `+5.7096` | `30248.17s` |
-| `E. rescaler-only 16` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml` | `2.9984` | `2.9865` | `3.0371` | `0.0119` | `12.4574` | `+1.8874` | `22502.96s` |
-| `F. rescaler-only 32` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml` | `2.9984` | `2.9865` | `3.0373` | `0.0119` | `11.7806` | `+1.2106` | `23211.72s` |
+| Run | Config | Effective Bits | Entropy Bits | Huffman Bits | Huff Min | Huff Max | Side-Info Bits | Quantized PPL | Delta vs Paper | Runtime |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `A. no-rescaler 8` | `configs/quant/watersic_llama32_1b_full_reftrue_norescaler.yaml` | `2.9984` | `2.9865` | `3.0368` | `n/a` | `n/a` | `0.0119` | `16.8684` | `+6.2984` | `19408.47s` |
+| `B. rescaler-only 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler.yaml` | `2.9984` | `2.9865` | `3.0368` | `n/a` | `n/a` | `0.0119` | `15.7029` | `+5.1329` | `18525.23s` |
+| `C. old rescaler+mixing 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml` | `2.9984` | `2.9865` | `3.0368` | `n/a` | `n/a` | `0.0119` | `16.6096` | `+6.0396` | `74349.91s` |
+| `D. repaired rescaler+mixing 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml` | `2.9984` | `2.9865` | `3.0368` | `n/a` | `n/a` | `0.0119` | `16.2796` | `+5.7096` | `30248.17s` |
+| `E. rescaler-only 16` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml` | `2.9984` | `2.9865` | `3.0371` | `n/a` | `n/a` | `0.0119` | `12.4574` | `+1.8874` | `22502.96s` |
+| `F. rescaler-only 32` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml` | `2.9984` | `2.9865` | `3.0373` | `n/a` | `n/a` | `0.0119` | `11.7806` | `+1.2106` | `23211.72s` |
 
 ## Top Worst Layers
 

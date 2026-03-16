@@ -62,12 +62,16 @@ def _kind_summary(layer_results: dict[str, dict[str, Any]]) -> dict[str, dict[st
         max_relative_mse = max(float(item["relative_weight_mse"]) for item in payloads)
         mean_entropy = sum(float(item["entropy_rate"]) for item in payloads) / max(len(payloads), 1)
         mean_huffman = sum(float(item["huffman_rate"]) for item in payloads) / max(len(payloads), 1)
+        shortest_huffman = min(int(item["huffman_shortest_symbol_length_bits"]) for item in payloads)
+        longest_huffman = max(int(item["huffman_longest_symbol_length_bits"]) for item in payloads)
         summary[kind] = {
             "count": len(payloads),
             "mean_relative_weight_mse": mean_relative_mse,
             "max_relative_weight_mse": max_relative_mse,
             "mean_entropy_rate": mean_entropy,
             "mean_huffman_rate": mean_huffman,
+            "huffman_shortest_symbol_length_bits": shortest_huffman,
+            "huffman_longest_symbol_length_bits": longest_huffman,
         }
     return summary
 
@@ -253,6 +257,8 @@ def quantize_model_sequential(
                 raw_bitwidth=result.bitrate.raw_average_bitwidth,
                 entropy_bitwidth=result.bitrate.entropy_average_bitwidth,
                 huffman_bitwidth=result.bitrate.huffman_average_bitwidth,
+                huffman_shortest_symbol_length_bits=result.bitrate.huffman_shortest_symbol_length_bits,
+                huffman_longest_symbol_length_bits=result.bitrate.huffman_longest_symbol_length_bits,
                 side_information_bitwidth=result.bitrate.side_information_average_bitwidth,
                 weighted_error=result.search.quantization.weighted_error,
                 applied_damping=result.applied_damping,
@@ -267,6 +273,8 @@ def quantize_model_sequential(
             "raw_rate": result.bitrate.raw_average_bitwidth,
             "entropy_rate": result.bitrate.entropy_average_bitwidth,
             "huffman_rate": result.bitrate.huffman_average_bitwidth,
+            "huffman_shortest_symbol_length_bits": int(result.bitrate.huffman_shortest_symbol_length_bits),
+            "huffman_longest_symbol_length_bits": int(result.bitrate.huffman_longest_symbol_length_bits),
             "side_information_rate": result.bitrate.side_information_average_bitwidth,
             "selected_c": result.search.selected_c,
             "reference_stats_requested": bool(config.reference_stats),
@@ -420,6 +428,14 @@ def quantize_model_sequential(
     raw_global = sum(layer.raw_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
     entropy_global = sum(layer.entropy_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
     huffman_global = sum(layer.huffman_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
+    huffman_shortest_global = min(
+        (int(layer.huffman_shortest_symbol_length_bits) for layer in layer_reports if layer.huffman_shortest_symbol_length_bits is not None),
+        default=0,
+    )
+    huffman_longest_global = max(
+        (int(layer.huffman_longest_symbol_length_bits) for layer in layer_reports if layer.huffman_longest_symbol_length_bits is not None),
+        default=0,
+    )
     side_global = sum(layer.side_information_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
 
     run_report = RunReport(
@@ -440,6 +456,8 @@ def quantize_model_sequential(
         raw_average_bitwidth=raw_global,
         entropy_average_bitwidth=entropy_global,
         huffman_average_bitwidth=huffman_global,
+        huffman_shortest_symbol_length_bits=huffman_shortest_global,
+        huffman_longest_symbol_length_bits=huffman_longest_global,
         side_information_overhead=side_global,
         layers=layer_reports,
         notes=report_metadata.get("notes", []),
@@ -457,6 +475,8 @@ def quantize_model_sequential(
                     "relative_weight_mse": payload["relative_weight_mse"],
                     "entropy_rate": payload["entropy_rate"],
                     "huffman_rate": payload["huffman_rate"],
+                    "huffman_shortest_symbol_length_bits": payload["huffman_shortest_symbol_length_bits"],
+                    "huffman_longest_symbol_length_bits": payload["huffman_longest_symbol_length_bits"],
                     "reference_stats_effective": payload["reference_stats_effective"],
                 }
                 for name, payload in sorted(

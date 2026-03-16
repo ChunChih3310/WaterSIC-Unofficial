@@ -13,13 +13,15 @@ The mainline calibration sweep on the validated rescaler-only path now has three
   - `16` chunks
   - `32` chunks
 
+Huffman shortest/longest symbol lengths are now part of the reporting schema. These three historical runs predate integer-code serialization for exact backfill, so their code-length range is shown as `n/a`.
+
 ## Completed Points
 
-| Run | Config | Calib Chunks | Effective Bits | Entropy Bits | Huffman Bits | Side Bits | Quantized PPL | Delta vs Paper | Runtime |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `8`-chunk anchor | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler.yaml` | `8` | `2.9984` | `2.9865` | `3.0368` | `0.0119` | `15.7029` | `+5.1329` | `18525.23s` |
-| `16`-chunk run | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml` | `16` | `2.9984` | `2.9865` | `3.0371` | `0.0119` | `12.4574` | `+1.8874` | `22502.96s` |
-| `32`-chunk run | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml` | `32` | `2.9984` | `2.9865` | `3.0373` | `0.0119` | `11.7806` | `+1.2106` | `23211.72s` |
+| Run | Config | Calib Chunks | Effective Bits | Entropy Bits | Huffman Bits | Huff Min | Huff Max | Side Bits | Quantized PPL | Delta vs Paper | Runtime |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `8`-chunk anchor | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler.yaml` | `8` | `2.9984` | `2.9865` | `3.0368` | `n/a` | `n/a` | `0.0119` | `15.7029` | `+5.1329` | `18525.23s` |
+| `16`-chunk run | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml` | `16` | `2.9984` | `2.9865` | `3.0371` | `n/a` | `n/a` | `0.0119` | `12.4574` | `+1.8874` | `22502.96s` |
+| `32`-chunk run | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml` | `32` | `2.9984` | `2.9865` | `3.0373` | `n/a` | `n/a` | `0.0119` | `11.7806` | `+1.2106` | `23211.72s` |
 
 ## Finished `32`-Chunk Run
 
@@ -40,6 +42,8 @@ Core metrics:
 - effective bits: `2.9984`
 - entropy bits: `2.9865`
 - Huffman bits: `3.0373`
+- Huffman shortest symbol length: `n/a`
+- Huffman longest symbol length: `n/a`
 - side-information overhead: `0.0119`
 - total runtime: `23211.72s`
 - quantization runtime: `23119.82s`

@@ -711,3 +711,34 @@
     - `11.7806` PPL at `2.9984` effective bits
   - the next recommended experiment is to increase calibration further on the same mainline path
   - Qwen3-8B remains intentionally deferred
+
+## 2026-03-16
+
+- Did not launch a `64`-chunk or paper-scale run in this round.
+- Measured the current paper-scale calibration size directly with the repo loader and tokenizer path:
+  - full WikiText-2 train split
+  - concatenated into one token stream
+  - non-overlapping `2048`-token chunks
+  - current exact chunk count: `1188`
+  - paper text gives `≈1189` for `Llama-3.2-1B`
+- Built an evidence-based paper-scale runtime estimate from completed run logs and the repaired adaptive-mixing audit:
+  - rescaler-only mainline path: about `40.5h`
+  - repaired adaptive-mixing full-model path: about `66.7h`
+  - estimate saved to `outputs/reports/full_llama32_1b_paperscale_runtime_estimate.md`
+- Added Huffman shortest/longest symbol-length reporting to the live pipeline:
+  - canonical Huffman utility
+  - bitrate metrics
+  - run-report schema
+  - markdown rendering
+- Added tests for:
+  - empty-symbol Huffman edge case
+  - single-symbol Huffman edge case
+  - shortest/longest code-length propagation into bitrate metrics
+- Backfilled the existing completed full-model report bundles with the new Huffman fields as `unavailable` where exact recovery is impossible from historical artifacts.
+  - reason:
+    - earlier artifacts did not serialize the integer Huffman symbols
+    - exact shortest/longest code lengths therefore cannot be reconstructed without rerunning quantization
+- Updated:
+  - `outputs/reports/full_llama32_1b_calibration_sweep_report.md`
+  - `outputs/reports/full_llama32_1b_quality_recovery_comparison.md`
+  - `docs/known_issues.md`

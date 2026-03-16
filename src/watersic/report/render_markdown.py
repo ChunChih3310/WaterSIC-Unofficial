@@ -3,6 +3,10 @@ from __future__ import annotations
 from watersic.report.schema import RunReport
 
 
+def _format_symbol_length(value: int | None) -> str:
+    return "n/a" if value is None else str(value)
+
+
 def render_run_report_markdown(report: RunReport) -> str:
     lines = [
         f"# WaterSIC Run Report",
@@ -21,19 +25,23 @@ def render_run_report_markdown(report: RunReport) -> str:
         f"- Raw average bitwidth: `{report.raw_average_bitwidth:.4f}`",
         f"- Entropy average bitwidth: `{report.entropy_average_bitwidth:.4f}`",
         f"- Huffman average bitwidth: `{report.huffman_average_bitwidth:.4f}`",
+        f"- Huffman shortest symbol length: `{_format_symbol_length(report.huffman_shortest_symbol_length_bits)}`",
+        f"- Huffman longest symbol length: `{_format_symbol_length(report.huffman_longest_symbol_length_bits)}`",
         f"- Side-information overhead: `{report.side_information_overhead:.4f}`",
         f"- Perplexity: `{report.perplexity}`",
         "",
         "## Layer Summary",
         "",
-        "| Layer | Kind | Target | Achieved | Entropy | Huffman | Side Info | Weighted Error |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Layer | Kind | Target | Achieved | Entropy | Huffman | Huff Min | Huff Max | Side Info | Weighted Error |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for layer in report.layers:
         lines.append(
             f"| {layer.name} | {layer.kind} | {layer.target_bitwidth:.4f} | {layer.achieved_bitwidth:.4f} "
-            f"| {layer.entropy_bitwidth:.4f} | {layer.huffman_bitwidth:.4f} | {layer.side_information_bitwidth:.4f} "
-            f"| {layer.weighted_error:.6e} |"
+            f"| {layer.entropy_bitwidth:.4f} | {layer.huffman_bitwidth:.4f} "
+            f"| {_format_symbol_length(layer.huffman_shortest_symbol_length_bits)} "
+            f"| {_format_symbol_length(layer.huffman_longest_symbol_length_bits)} "
+            f"| {layer.side_information_bitwidth:.4f} | {layer.weighted_error:.6e} |"
         )
     if report.notes:
         lines.extend(["", "## Notes", ""])

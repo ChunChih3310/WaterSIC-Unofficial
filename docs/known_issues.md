@@ -7,6 +7,11 @@
 3. Calibration clearly helped when moving from `8` to `16` and again from `16` to `32` chunks. The strongest remaining uncertainty on the best validated path is how much more of the residual `+1.2106` paper gap is still calibration-limited versus how much is now concentrated in the remaining late-layer residual-path outliers.
 4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further on the now-validated mainline path.
 5. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
+6. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
+7. Paper-scale calibration on the current A6000 setup is expensive even on the stable mainline path:
+   - rescaler-only mainline estimate: about `40.5h`
+   - repaired adaptive-mixing estimate: about `66.7h`
+   - the adaptive-mixing paper-scale path is therefore currently too expensive for normal iterative debugging
 
 ## Implementation Gaps
 
@@ -16,6 +21,7 @@
 4. The current best validated path has now been completed at `8`, `16`, and `32` calibration chunks.
 5. Adaptive mixing remains implemented, paper-audited, and stable, but it is not yet the best quality path at full-model scope.
 6. Qwen3-8B was intentionally not run in this round.
+7. New runs will report exact Huffman shortest/longest symbol lengths, but older reports can only mark those fields as unavailable unless the quantization run is repeated.
 
 ## Already Validated
 
@@ -189,6 +195,12 @@
    - `o_proj` mean relative weight MSE: `0.2382 -> 0.2025`
    - `down_proj` mean relative weight MSE: `0.1709 -> 0.1292`
    - paper gap: `+1.8874 -> +1.2106`
+28. Paper-scale calibration size is now measured and documented for the current tokenizer path:
+   - exact chunk count: `1188`
+   - chunking rule: non-overlapping `2048`-token sequences over the full WikiText-2 train split
+29. Huffman shortest/longest symbol-length reporting is now implemented in the active pipeline:
+   - exact for new runs
+   - unavailable for older historical runs that did not serialize integer Huffman symbols
 
 ## Not Yet Valid To Claim
 
@@ -197,9 +209,11 @@
 3. It is not yet valid to claim that the current repo reproduces the paper’s final accuracy-quality frontier; the repo now reproduces the end-to-end pipeline, not yet the final paper number.
 4. It is not yet valid to claim that Qwen3-8B reproduction is done; it was intentionally not run in this round.
 5. It is not yet valid to claim that calibration is fully saturated on the stable path, because only `8`, `16`, and `32` chunks have been completed so far.
+6. It is not yet valid to claim that paper-scale adaptive mixing is a practical next benchmark path on the current implementation, because the current estimate is about `66.7h` on one A6000 and no quality win over the rescaler-only reference has been demonstrated.
 
 ## Immediate Next Step
 
 1. Keep the `32`-chunk rescaler-only run as the current best completed reference point.
-2. Increase calibration further on the same rescaler-only full-model path before returning to adaptive-mixing debugging.
-3. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further.
+2. Do not launch a paper-scale adaptive-mixing run on the current implementation before more runtime work; it is currently too expensive relative to its demonstrated quality.
+3. When long mainline runs resume, the highest-signal next experiment remains a larger-calibration rescaler-only run on the same validated path.
+4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further.
