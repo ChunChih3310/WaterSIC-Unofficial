@@ -29,6 +29,7 @@
 6. Qwen3-8B was intentionally not run in this round.
 7. New runs will report exact Huffman shortest/longest symbol lengths, but older reports can only mark those fields as unavailable unless the quantization run is repeated.
 8. If larger batch sizes are used later, `batch_size=2` is the current evidence-backed ceiling for the full reference-stat mainline path on this A6000 without changing experiment structure.
+9. GPU auto-selection is now more conservative than the original implementation, but it still depends on `nvidia-smi` process visibility. On MIG-enabled or driver-restricted systems where per-process visibility is incomplete, the selector falls back to memory-first ranking and logs a warning instead of pretending the GPU is fully idle.
 
 ## Already Validated
 
@@ -217,6 +218,11 @@
    - adaptive candidate objective path:
      - fits through `bs=8`
      - throughput improvement from `bs=1` to `bs=8` is only about `4.8%`
+31. The GPU selector now uses a conservative ranking rule when `CUDA_VISIBLE_DEVICES` is unset:
+   - first: prefer GPUs with `0` visible compute processes
+   - second: prefer lower used memory / higher free memory
+   - third: use utilization only as a tie-breaker
+   - if no GPU meets the idle thresholds, the selector warns and chooses the least-bad GPU by the same rule
 
 ## Not Yet Valid To Claim
 

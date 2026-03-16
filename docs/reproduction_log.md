@@ -1,5 +1,28 @@
 # Reproduction Log
 
+## 2026-03-17
+
+- Audited the repo-local GPU auto-selection logic after a real bad pick on a low-utilization but non-idle A6000.
+- Fixed the selector to rank GPUs conservatively when `CUDA_VISIBLE_DEVICES` is unset:
+  - prefer `0` visible compute processes first
+  - then lower used memory / higher free memory
+  - then lower utilization as a tie-breaker
+- Added explicit idle thresholds:
+  - `device.min_free_memory_gib`
+  - `device.max_used_memory_gib`
+- Added full ranking diagnostics to the runtime logs so each auto-pick now records:
+  - process count
+  - process memory
+  - used/free memory
+  - utilization
+  - idle-threshold classification
+- Added deterministic mocked tests covering:
+  - low-utilization busy GPU losing to a slightly busier zero-process GPU
+  - zero-process GPU with more free memory winning over a smaller-memory alternative
+  - all-GPUs-busy fallback with explicit warning
+  - strict respect for pre-set `CUDA_VISIBLE_DEVICES`
+- Updated the README and default config to document the new GPU-selection policy and thresholds.
+
 ## 2026-03-13
 
 - Initialized a repo-local git repository inside `WaterSIC`.

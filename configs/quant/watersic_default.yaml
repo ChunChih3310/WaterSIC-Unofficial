@@ -6,6 +6,8 @@ max_layers:
 max_modules:
 device:
   override:
+  min_free_memory_gib: 24.0
+  max_used_memory_gib: 2.0
 calibration:
   split: train
   sequence_length: 2048

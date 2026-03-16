@@ -6,7 +6,7 @@ The current codebase implements:
 
 - repo-local conda environment setup
 - repo-local path safety guard
-- automatic idle-GPU selection when `CUDA_VISIBLE_DEVICES` is unset
+- conservative idle-GPU selection when `CUDA_VISIBLE_DEVICES` is unset
 - deterministic WikiText-2 calibration/evaluation chunking
 - core WaterSIC math primitives:
   - transformed-space ZSIC
@@ -55,6 +55,30 @@ conda activate /nfs_tmp/Compression_team/src/WaterSIC/.conda/watersic
 ```
 
 The script keeps the environment and Hugging Face caches inside this repository.
+
+## Device Selection
+
+Runtime device selection follows a conservative policy:
+
+- if `CUDA_VISIBLE_DEVICES` is already set, the code respects it exactly
+- otherwise, the selector ranks GPUs by:
+  - zero active compute processes first
+  - then lower used memory / higher free memory
+  - then lower instantaneous GPU utilization
+- a GPU is only classified as truly idle if it has:
+  - `0` visible compute processes
+  - used memory below `device.max_used_memory_gib`
+  - free memory above `device.min_free_memory_gib`
+- if no GPU meets those thresholds, the selector logs a warning and chooses the least-bad GPU by the same ranking rule
+
+The default thresholds live in [watersic_default.yaml](/nfs_tmp/Compression_team/src/WaterSIC/configs/quant/watersic_default.yaml):
+
+```yaml
+device:
+  override:
+  min_free_memory_gib: 24.0
+  max_used_memory_gib: 2.0
+```
 
 ## Main Commands
 
@@ -114,7 +138,8 @@ python scripts/make_report.py
 
 ## Troubleshooting
 
-- If GPU selection is wrong, set `CUDA_VISIBLE_DEVICES` before launching a script.
+- If GPU selection is wrong or you want to pin a device manually, set `CUDA_VISIBLE_DEVICES` before launching a script.
+- If all GPUs are partially occupied, the selector will log the full ranking and warn before choosing the least-bad device.
 - If a model is gated on Hugging Face, ensure the token in `.env` is valid and has access.
 - If `output_attentions=True` causes a model-specific issue, reduce to the smoke config first and inspect the saved log in `outputs/logs/`.
 - If a quantization run fails on a covariance or rescaler step, inspect [docs/known_issues.md](/nfs_tmp/Compression_team/src/WaterSIC/docs/known_issues.md) and the run log before changing defaults.

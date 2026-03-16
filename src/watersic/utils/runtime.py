@@ -49,7 +49,7 @@ def select_runtime_device(device_config: dict | None, logger) -> DeviceSelection
         else:
             raise ValueError(f"Unsupported device override: {override}")
     else:
-        selection = pick_idle_gpu()
+        selection = pick_idle_gpu(device_config=device_config, logger=logger)
     logger.info("Device selection: %s", selection)
     return selection
 
