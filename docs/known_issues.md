@@ -223,6 +223,9 @@
    - second: prefer lower used memory / higher free memory
    - third: use utilization only as a tie-breaker
    - if no GPU meets the idle thresholds, the selector warns and chooses the least-bad GPU by the same rule
+32. The GPU assignment path now sets `CUDA_VISIBLE_DEVICES` before any CUDA initialization:
+   - this avoids the old logical/physical mismatch where the selector could choose physical GPU `N` but torch still initialize on physical GPU `0`
+   - runs now log both logical torch device and physical GPU mapping explicitly
 
 ## Not Yet Valid To Claim
 

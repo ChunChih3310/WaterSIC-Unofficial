@@ -70,6 +70,8 @@ Runtime device selection follows a conservative policy:
   - used memory below `device.max_used_memory_gib`
   - free memory above `device.min_free_memory_gib`
 - if no GPU meets those thresholds, the selector logs a warning and chooses the least-bad GPU by the same ranking rule
+- auto-selection happens before any CUDA initialization so the later torch device mapping is safe
+- after selection, torch uses logical `cuda:0`, which maps to the chosen physical GPU via `CUDA_VISIBLE_DEVICES`
 
 The default thresholds live in [watersic_default.yaml](/nfs_tmp/Compression_team/src/WaterSIC/configs/quant/watersic_default.yaml):
 

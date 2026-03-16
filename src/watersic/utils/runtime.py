@@ -51,6 +51,13 @@ def select_runtime_device(device_config: dict | None, logger) -> DeviceSelection
     else:
         selection = pick_idle_gpu(device_config=device_config, logger=logger)
     logger.info("Device selection: %s", selection)
+    if selection.torch_device.startswith("cuda") and selection.cuda_visible_devices is not None:
+        logger.info(
+            "Torch logical device %s maps via CUDA_VISIBLE_DEVICES=%s to physical GPU %s",
+            selection.torch_device,
+            selection.cuda_visible_devices,
+            selection.gpu_index if selection.gpu_index is not None else "unknown",
+        )
     return selection
 
 

@@ -7,6 +7,14 @@
   - prefer `0` visible compute processes first
   - then lower used memory / higher free memory
   - then lower utilization as a tie-breaker
+- Found and fixed a second GPU-selection bug in the assignment path:
+  - the old code queried `torch.cuda.is_available()` before setting `CUDA_VISIBLE_DEVICES`
+  - that could initialize CUDA too early and make the later physical-GPU remap unsafe
+  - the selector now chooses the physical GPU first, sets `CUDA_VISIBLE_DEVICES`, and only then touches `torch.cuda`
+- Clarified logging so runs now report:
+  - physical GPU chosen by the selector
+  - logical torch device after remapping (`cuda:0`)
+  - the exact `CUDA_VISIBLE_DEVICES` mapping used
 - Added explicit idle thresholds:
   - `device.min_free_memory_gib`
   - `device.max_used_memory_gib`

@@ -17,6 +17,7 @@ class DeviceSelection:
     gpu_name: str | None = None
     warning: str | None = None
     ranking: tuple[str, ...] = ()
+    logical_device_index: int | None = None
 
 
 @dataclass(frozen=True)
@@ -166,12 +167,19 @@ def pick_idle_gpu(
     device_config: dict[str, Any] | None = None,
     logger: Any | None = None,
 ) -> DeviceSelection:
-    if not torch.cuda.is_available():
-        return DeviceSelection(torch_device="cpu", cuda_visible_devices=None, reason="cuda_unavailable")
-
     existing_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     if existing_visible:
-        return DeviceSelection(torch_device="cuda", cuda_visible_devices=existing_visible, reason="cuda_visible_devices_respected")
+        if not torch.cuda.is_available():
+            return DeviceSelection(torch_device="cpu", cuda_visible_devices=existing_visible, reason="cuda_unavailable")
+        primary_visible = existing_visible.split(",")[0].strip() if existing_visible else ""
+        physical_index = int(primary_visible) if primary_visible.isdigit() else None
+        return DeviceSelection(
+            torch_device="cuda:0",
+            cuda_visible_devices=existing_visible,
+            reason="cuda_visible_devices_respected",
+            gpu_index=physical_index,
+            logical_device_index=0,
+        )
 
     policy = _build_policy(device_config)
     gpu_query = [
@@ -241,12 +249,31 @@ def pick_idle_gpu(
 
     selected_index = int(best["index"])
     os.environ["CUDA_VISIBLE_DEVICES"] = str(selected_index)
+    if not torch.cuda.is_available():
+        warning = (
+            "Selected a physical GPU via nvidia-smi, but torch.cuda is unavailable after setting CUDA_VISIBLE_DEVICES."
+            if warning is None
+            else warning
+            + " Selected a physical GPU via nvidia-smi, but torch.cuda is unavailable after setting CUDA_VISIBLE_DEVICES."
+        )
+        if logger is not None:
+            logger.warning(warning)
+        return DeviceSelection(
+            torch_device="cpu",
+            cuda_visible_devices=str(selected_index),
+            reason="cuda_unavailable_after_selection",
+            gpu_index=selected_index,
+            gpu_name=str(best["name"]),
+            warning=warning,
+            ranking=ranking,
+        )
     return DeviceSelection(
-        torch_device="cuda",
+        torch_device="cuda:0",
         cuda_visible_devices=str(selected_index),
         reason="idle_gpu_selected" if warning is None else "least_bad_gpu_selected",
         gpu_index=selected_index,
         gpu_name=str(best["name"]),
         warning=warning,
         ranking=ranking,
+        logical_device_index=0,
     )

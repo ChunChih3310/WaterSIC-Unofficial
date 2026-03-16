@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 
 from watersic.utils.device import pick_idle_gpu
@@ -19,7 +20,6 @@ def _mock_nvidia_smi(monkeypatch, *, gpu_output: str, process_output: str = "") 
 
 
 def test_pick_idle_gpu_prefers_zero_process_gpu(monkeypatch) -> None:
-    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
     monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
     _mock_nvidia_smi(
         monkeypatch,
@@ -32,13 +32,23 @@ def test_pick_idle_gpu_prefers_zero_process_gpu(monkeypatch) -> None:
             "GPU-busy, 1002, 4096\n"
         ),
     )
+    observed_visible: list[str | None] = []
+
+    def _is_available() -> bool:
+        observed_visible.append(os.environ.get("CUDA_VISIBLE_DEVICES"))
+        return True
+
+    monkeypatch.setattr("torch.cuda.is_available", _is_available)
 
     selection = pick_idle_gpu()
 
     assert selection.gpu_index == 1
     assert selection.cuda_visible_devices == "1"
+    assert selection.torch_device == "cuda:0"
+    assert selection.logical_device_index == 0
     assert selection.reason == "idle_gpu_selected"
     assert any("gpu=1" in line and "processes=0" in line for line in selection.ranking)
+    assert observed_visible == ["1"]
 
 
 def test_pick_idle_gpu_prefers_more_free_memory_when_process_free(monkeypatch) -> None:
@@ -100,3 +110,5 @@ def test_pick_idle_gpu_respects_cuda_visible_devices(monkeypatch) -> None:
 
     assert selection.reason == "cuda_visible_devices_respected"
     assert selection.cuda_visible_devices == "6"
+    assert selection.torch_device == "cuda:0"
+    assert selection.gpu_index == 6
