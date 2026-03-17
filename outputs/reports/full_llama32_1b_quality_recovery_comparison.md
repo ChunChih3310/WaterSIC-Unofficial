@@ -17,6 +17,7 @@ Huffman shortest/longest symbol lengths are now part of the run-report schema. T
 | `D. repaired rescaler+mixing 8` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml` | `2.9984` | `2.9865` | `3.0368` | `n/a` | `n/a` | `0.0119` | `16.2796` | `+5.7096` | `30248.17s` |
 | `E. rescaler-only 16` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml` | `2.9984` | `2.9865` | `3.0371` | `n/a` | `n/a` | `0.0119` | `12.4574` | `+1.8874` | `22502.96s` |
 | `F. rescaler-only 32` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml` | `2.9984` | `2.9865` | `3.0373` | `n/a` | `n/a` | `0.0119` | `11.7806` | `+1.2106` | `23211.72s` |
+| `G. repaired rescaler+mixing 64` | `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired_calib64.yaml` | `2.9984` | `2.9865` | `3.0376` | `1` | `25` | `0.0119` | `11.1874` | `+0.6174` | `39290.59s` |
 
 ## Top Worst Layers
 
@@ -28,6 +29,7 @@ Huffman shortest/longest symbol lengths are now part of the run-report schema. T
 | `D. repaired rescaler+mixing 8` | `l11 o_proj 0.4796`; `l13 o_proj 0.4597`; `l12 o_proj 0.4185`; `l4 o_proj 0.3997`; `l0 o_proj 0.3934` |
 | `E. rescaler-only 16` | `l13 o_proj 0.3427`; `l11 o_proj 0.3223`; `l0 o_proj 0.3108`; `l12 o_proj 0.3035`; `l4 o_proj 0.2935` |
 | `F. rescaler-only 32` | `l13 o_proj 0.2863`; `l0 o_proj 0.2650`; `l11 o_proj 0.2556`; `l4 o_proj 0.2540`; `l12 o_proj 0.2503` |
+| `G. repaired rescaler+mixing 64` | `l1 down_proj 0.2587`; `l13 o_proj 0.2491`; `l11 o_proj 0.2460`; `l0 o_proj 0.2349`; `l10 down_proj 0.2300` |
 
 ## Mean Relative Weight MSE By Kind
 
@@ -39,41 +41,49 @@ Huffman shortest/longest symbol lengths are now part of the run-report schema. T
 | `D. repaired rescaler+mixing 8` | `0.3176` | `0.3051` | `0.0604` | `0.0886` | `0.0797` |
 | `E. rescaler-only 16` | `0.2382` | `0.1709` | `0.0603` | `0.0854` | `0.0756` |
 | `F. rescaler-only 32` | `0.2025` | `0.1292` | `0.0770` | `0.1051` | `0.0908` |
+| `G. repaired rescaler+mixing 64` | `0.1652` | `0.1095` | `0.0458` | `0.0688` | `0.0610` |
 
 ## Interpretation
 
-1. `F` is now the best completed `Llama-3.2-1B` point in the repo.
-   - It improves PPL by `0.6768` over `E`.
-   - It improves PPL by `3.9223` over `B`.
-   - It reduces the paper gap from `+1.8874` to `+1.2106`.
+1. `G` is now the best completed `Llama-3.2-1B` point in the repo.
+   - It improves PPL by `0.5932` over `F`.
+   - It improves PPL by `1.2700` over `E`.
+   - It improves PPL by `4.5155` over `B`.
+   - It reduces the paper gap from `+1.2106` to `+0.6174`.
 
 2. Calibration continues to help on the validated rescaler-only path.
    - `8 -> 16`: `15.7029 -> 12.4574`
    - `16 -> 32`: `12.4574 -> 11.7806`
 
-3. The dominant remaining error is still concentrated in residual-path projections.
-   - all top-5 worst layers at `F` are still `o_proj`
-   - `down_proj` remains the second-largest mean-error family
+3. Larger calibration makes repaired adaptive mixing finally competitive.
+   - `D -> G`: `16.2796 -> 11.1874`
+   - the repaired adaptive-mixing path now beats the best completed rescaler-only point `F`
+   - the best completed path is no longer rescaler-only
 
-4. The `32`-chunk run improves the error families that matter most for end-task quality, even though the Q/K/V means do not continue to monotonically improve.
-   - `E -> F`:
-     - `o_proj`: `0.2382 -> 0.2025`
-     - `down_proj`: `0.1709 -> 0.1292`
-     - `q_proj`: `0.0603 -> 0.0770`
-     - `k_proj`: `0.0854 -> 0.1051`
-     - `v_proj`: `0.0756 -> 0.0908`
+4. The dominant remaining error is still concentrated in residual-path projections, but the profile is no longer exclusively `o_proj`.
+   - `G` still has `o_proj` and `down_proj` as the largest-error kinds
+   - the worst single layer is now `model.layers.1.mlp.down_proj`
+   - top-5 worst layers at `G` include both `o_proj` and `down_proj`
 
-5. Adaptive mixing remains off the mainline quality-recovery path.
-   - both completed adaptive-mixing full-model runs remain worse than `E` and `F`
-   - the best paper-gap reduction has come from calibration on the stable rescaler-only path
+5. `G` improves every reported module family versus `F`.
+   - `o_proj`: `0.2025 -> 0.1652`
+   - `down_proj`: `0.1292 -> 0.1095`
+   - `q_proj`: `0.0770 -> 0.0458`
+   - `k_proj`: `0.1051 -> 0.0688`
+   - `v_proj`: `0.0908 -> 0.0610`
+
+6. Adaptive mixing is no longer merely a secondary path.
+   - at `8` chunks it remained worse than the best rescaler-only runs
+   - at `64` chunks on the repaired path it becomes the current best completed full-model result
+   - this suggests adaptive mixing was heavily calibration-limited in prior completed runs
 
 ## Current Best Point
 
-- Run: `llama32_1b_full_3p0bit_reftrue_rescaler_calib32`
+- Run: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64`
 - Effective bits: `2.9984`
-- Quantized PPL: `11.7806`
+- Quantized PPL: `11.1874`
 - Status: best completed `Llama-3.2-1B` point in this repo as of this update
 
 ## Next Step
 
-Increase calibration further on the same validated rescaler-only path before returning to adaptive-mixing work or starting Qwen3-8B.
+Decide whether the remaining `+0.6174` paper gap is still primarily calibration-limited by running a larger-calibration comparison on the now-best repaired adaptive-mixing path before broadening to Qwen3-8B.

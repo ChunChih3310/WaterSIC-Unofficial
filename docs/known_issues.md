@@ -2,9 +2,9 @@
 
 ## Critical Blockers
 
-1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the `32`-chunk rescaler-only point, but it is still above the paper’s `10.57` PPL result. Current best completed result: `11.7806` PPL at `2.9984` effective bits, an absolute gap of `+1.2106`.
-2. Repaired adaptive mixing improved the old adaptive-mixing full-model point from `16.6096` to `16.2796` and cut runtime substantially, but it still does not beat the rescaler-only references. The repaired path is therefore beneficial relative to the old mixing implementation, but still harmful relative to the current best completed point.
-3. Calibration clearly helped when moving from `8` to `16` and again from `16` to `32` chunks. The strongest remaining uncertainty on the best validated path is how much more of the residual `+1.2106` paper gap is still calibration-limited versus how much is now concentrated in the remaining late-layer residual-path outliers.
+1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the repaired adaptive-mixing `64`-chunk point, but it is still above the paper’s `10.57` PPL result. Current best completed result: `11.1874` PPL at `2.9984` effective bits, an absolute gap of `+0.6174`.
+2. Calibration clearly helped when moving from `8` to `16` and again from `16` to `32` chunks on the rescaler-only path, and the repaired adaptive-mixing path only became competitive once calibration increased materially. The strongest remaining uncertainty on the best validated path is how much more of the residual `+0.6174` paper gap is still calibration-limited versus how much is now concentrated in the remaining residual-path outliers.
+3. Repaired adaptive mixing is now beneficial at larger calibration scale: the `64`-chunk repaired run beats both repaired-mixing `8` and rescaler-only `32`, but it still has not matched the paper.
 4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further on the now-validated mainline path.
 5. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
 6. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
@@ -24,8 +24,8 @@
 1. The repo now has a full-model `Llama-3.2-1B` result, but not yet a paper-matching one. The remaining work is quality recovery, not basic end-to-end execution.
 2. Diagonal rescalers are now validated on the full-model path and improve PPL materially.
 3. The original upgraded general-pipeline adaptive-mixing search is validated end-to-end, but its old local objective/search coupling did not improve full-model quality. The repaired search path now reuses the step-1 Q/K/V scales during the coordinate search and is validated on both a `2`-layer prefix and a full-model run.
-4. The current best validated path has now been completed at `8`, `16`, and `32` calibration chunks.
-5. Adaptive mixing remains implemented, paper-audited, and stable, but it is not yet the best quality path at full-model scope.
+4. The current best validated path family has now been completed at `8`, `16`, `32`, and `64` calibration chunks, with the best completed point now on the repaired adaptive-mixing branch at `64`.
+5. Adaptive mixing remains implemented, paper-audited, stable, and now beneficial at larger calibration budget, but it is not yet validated as fully paper-matching.
 6. Qwen3-8B was intentionally not run in this round.
 7. New runs will report exact Huffman shortest/longest symbol lengths, but older reports can only mark those fields as unavailable unless the quantization run is repeated.
 8. If larger batch sizes are used later, `batch_size=2` is the current evidence-backed ceiling for the full reference-stat mainline path on this A6000 without changing experiment structure.
@@ -179,11 +179,10 @@
    - `o_proj` mean relative weight MSE: `0.3170 -> 0.2382`
    - `down_proj` mean relative weight MSE: `0.3023 -> 0.1709`
    - paper gap: `+5.1329 -> +1.8874`
-25. The current best completed `Llama-3.2-1B` point is now the `32`-chunk rescaler-only run:
+25. The `32`-chunk rescaler-only run established the last best mainline point before the larger-calibration adaptive-mixing rerun:
    - `11.7806` PPL at `2.9984` effective bits
    - better than the `16`-chunk rescaler-only point by `0.6768`
    - better than the `8`-chunk rescaler-only reference by `3.9223`
-   - better than both adaptive-mixing full-model variants
 26. The `32`-chunk rescaler-only full-model run completed successfully:
    - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml`
    - reports:
@@ -227,20 +226,46 @@
 32. The GPU assignment path now sets `CUDA_VISIBLE_DEVICES` before any CUDA initialization:
    - this avoids the old logical/physical mismatch where the selector could choose physical GPU `N` but torch still initialize on physical GPU `0`
    - runs now log both logical torch device and physical GPU mapping explicitly
+33. The repaired adaptive-mixing `64`-chunk full-model run completed successfully:
+   - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired_calib64.yaml`
+   - reports:
+     - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64.json`
+     - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64.md`
+   - achieved effective bits: `2.9984`
+   - entropy bits: `2.9865`
+   - Huffman bits: `3.0376`
+   - Huffman shortest/longest symbol lengths: `1` / `25`
+   - side-information overhead: `0.0119`
+   - baseline PPL: `9.7041`
+   - quantized PPL: `11.1874`
+   - quantization runtime: `39193.57s`
+   - total runtime: `39290.59s`
+   - peak memory: `32.69 GiB`
+   - quantization anomalies: none
+34. The repaired adaptive-mixing path now becomes the best completed `Llama-3.2-1B` path at larger calibration:
+   - `repaired mixing 8`: `16.2796`
+   - `repaired mixing 64`: `11.1874`
+   - `rescaler-only 32`: `11.7806`
+   - the `64`-chunk repaired path beats the previous best completed point by `0.5932` PPL
+35. The remaining highest-error families after the `64`-chunk repaired run are still residual-path projections:
+   - `o_proj` mean relative weight MSE: `0.1652`
+   - `down_proj` mean relative weight MSE: `0.1095`
+   - worst layer: `model.layers.1.mlp.down_proj` at `0.2587`
+   - top-5 worst layers include both `o_proj` and `down_proj`, not only `o_proj`
 
 ## Not Yet Valid To Claim
 
-1. It is not yet valid to claim a faithful reproduction of the paper’s final `Llama-3.2-1B` `3.00`-bit result, because the best completed run is still `+1.2106` PPL worse than the paper.
-2. It is not yet valid to claim that the current repo reproduces the paper’s final adaptive-mixing behavior, because the repaired full-model adaptive-mixing point is still worse than the best rescaler-only reference and still `+5.7096` above the paper’s `10.57` point.
+1. It is not yet valid to claim a faithful reproduction of the paper’s final `Llama-3.2-1B` `3.00`-bit result, because the best completed run is still `+0.6174` PPL worse than the paper.
+2. It is not yet valid to claim that the current repo fully reproduces the paper’s final adaptive-mixing behavior, even though repaired adaptive mixing now helps at larger calibration, because the best completed point still does not match the paper’s `10.57` result.
 3. It is not yet valid to claim that the current repo reproduces the paper’s final accuracy-quality frontier; the repo now reproduces the end-to-end pipeline, not yet the final paper number.
 4. It is not yet valid to claim that Qwen3-8B reproduction is done; it was intentionally not run in this round.
-5. It is not yet valid to claim that calibration is fully saturated on the stable path, because only `8`, `16`, and `32` chunks have been completed so far.
-6. It is not yet valid to claim that paper-scale adaptive mixing is a practical next benchmark path on the current implementation, because the current estimate is about `66.7h` on one A6000 and no quality win over the rescaler-only reference has been demonstrated.
+5. It is not yet valid to claim that calibration is fully saturated on the stable path, because only `8`, `16`, `32`, and one `64`-chunk repaired adaptive-mixing run have been completed so far.
+6. It is not yet valid to claim that paper-scale adaptive mixing is a practical next benchmark path on the current implementation, because the current estimate is about `66.7h` on one A6000 even though the `64`-chunk repaired run now beats the best completed rescaler-only reference.
 7. It is not yet valid to claim that simply increasing batch size will make paper-scale adaptive mixing practical, because the safe mainline collection ceiling is only `bs=2` and the lighter adaptive objective path gains little from larger batches.
 
 ## Immediate Next Step
 
-1. Keep the `32`-chunk rescaler-only run as the current best completed reference point.
-2. Do not launch a paper-scale adaptive-mixing run on the current implementation before more runtime work; it is currently too expensive relative to its demonstrated quality.
-3. When long mainline runs resume, use `batch_size=2` on the validated rescaler-only path rather than `1`; this is the only safe batch-size increase currently supported by the A6000 probe.
+1. Treat the `64`-chunk repaired adaptive-mixing run as the current best completed `Llama-3.2-1B` reference point.
+2. Do not launch a paper-scale adaptive-mixing run on the current implementation before more runtime work; it is still too expensive for routine iteration on one A6000.
+3. When long mainline runs resume, keep `batch_size=2` as the safe evidence-backed collection batch size on this A6000.
 4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further.

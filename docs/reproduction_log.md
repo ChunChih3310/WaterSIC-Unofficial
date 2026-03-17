@@ -2,6 +2,27 @@
 
 ## 2026-03-17
 
+- Completed the larger-calibration repaired adaptive-mixing full-model rerun:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64`
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired_calib64.yaml`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64.md`
+  - achieved effective bits: `2.9984`
+  - entropy bits: `2.9865`
+  - Huffman bits: `3.0376`
+  - Huffman shortest/longest symbol lengths: `1` / `25`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `11.1874`
+  - total runtime: `39290.59s`
+  - peak GPU memory: `32.69 GiB`
+  - quantization anomalies: none
+- Result interpretation from the completed `64`-chunk repaired adaptive-mixing run:
+  - it beats the previous best completed point `llama32_1b_full_3p0bit_reftrue_rescaler_calib32` (`11.7806`) by `0.5932` PPL
+  - it reduces the paper gap from `+1.2106` to `+0.6174`
+  - repaired adaptive mixing now appears materially calibration-limited rather than intrinsically harmful
+  - the remaining largest distortion still concentrates in `o_proj` / `down_proj`, with the worst single layer now `model.layers.1.mlp.down_proj`
 - Audited the repo-local GPU auto-selection logic after a real bad pick on a low-utilization but non-idle A6000.
 - Fixed the selector to rank GPUs conservatively when `CUDA_VISIBLE_DEVICES` is unset:
   - prefer `0` visible compute processes first
