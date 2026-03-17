@@ -1,0 +1,8 @@
+model_id: /nfs_tmp/Compression_team/src/WaterSIC/outputs/original/meta-llama_Llama-3.1-8B
+model_revision: main
+tokenizer_id: /nfs_tmp/Compression_team/src/WaterSIC/outputs/original/meta-llama_Llama-3.1-8B
+tokenizer_revision: main
+architecture: llama
+dtype: bfloat16
+attn_implementation: eager
+trust_remote_code: false
