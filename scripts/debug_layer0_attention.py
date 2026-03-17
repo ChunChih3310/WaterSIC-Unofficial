@@ -29,7 +29,7 @@ def main() -> None:
     seed = int(debug_config.get("quant", {}).get("seed", 0))
 
     _, logger = prepare_runtime(log_name=f"debug_{debug_config['run_name']}", debug=args.debug, seed=seed)
-    selection = select_runtime_device(debug_config.get("device"), logger)
+    selection = select_runtime_device(debug_config.get("device"), logger, seed=seed)
     device = resolve_torch_device(selection)
 
     reference_device = device

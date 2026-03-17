@@ -28,7 +28,7 @@ def main() -> None:
     eval_config = load_config(args.eval_config)
     device_config = load_config(args.device_config) if args.device_config else {}
     _, logger = prepare_runtime(log_name="benchmark_model", debug=args.debug, seed=0)
-    selection = select_runtime_device(device_config.get("device"), logger)
+    selection = select_runtime_device(device_config.get("device"), logger, seed=0)
     result = benchmark_saved_model(args.model_path, eval_config, device=resolve_torch_device(selection), logger=logger)
     logger.info("Benchmark result: %s", result)
 

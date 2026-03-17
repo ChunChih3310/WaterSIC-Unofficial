@@ -33,7 +33,7 @@ def main() -> None:
 
     seed = int(quant_config.get("layer", {}).get("seed", 0))
     _, logger = prepare_runtime(log_name=f"run_{quant_config['run_name']}", debug=args.debug, seed=seed)
-    selection = select_runtime_device(quant_config.get("device"), logger)
+    selection = select_runtime_device(quant_config.get("device"), logger, seed=seed)
     device = resolve_torch_device(selection)
 
     result = run_full_experiment(

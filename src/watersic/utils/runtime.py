@@ -12,7 +12,7 @@ from .env import configure_repo_caches, load_repo_env
 from .io import load_yaml, save_json
 from .logging import configure_logging
 from .path_guard import repo_path
-from .seed import seed_everything
+from .seed import seed_cuda, seed_host
 
 
 def utc_timestamp() -> str:
@@ -33,13 +33,13 @@ def sanitize_name(name: str) -> str:
 def prepare_runtime(*, log_name: str, debug: bool, seed: int) -> tuple[dict, object]:
     load_repo_env()
     caches = configure_repo_caches()
-    seed_everything(seed)
+    seed_host(seed)
     logger = configure_logging(log_name, debug=debug)
     logger.info("Configured repo-local caches: %s", caches)
     return caches, logger
 
 
-def select_runtime_device(device_config: dict | None, logger) -> DeviceSelection:
+def select_runtime_device(device_config: dict | None, logger, *, seed: int | None = None) -> DeviceSelection:
     override = (device_config or {}).get("override")
     if override:
         if override == "cpu":
@@ -58,6 +58,9 @@ def select_runtime_device(device_config: dict | None, logger) -> DeviceSelection
             selection.cuda_visible_devices,
             selection.gpu_index if selection.gpu_index is not None else "unknown",
         )
+        if seed is not None:
+            seed_cuda(seed)
+            logger.info("CUDA RNG seeded after device selection with seed=%d", seed)
     return selection
 
 

@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 from watersic.utils.device import pick_idle_gpu
+from watersic.utils.runtime import select_runtime_device
 
 
 def _mock_nvidia_smi(monkeypatch, *, gpu_output: str, process_output: str = "") -> None:
@@ -140,3 +141,35 @@ def test_pick_idle_gpu_respects_cuda_visible_devices(monkeypatch) -> None:
     assert selection.cuda_visible_devices == "6"
     assert selection.torch_device == "cuda"
     assert selection.gpu_index == 6
+
+
+def test_select_runtime_device_seeds_cuda_after_gpu_selection(monkeypatch) -> None:
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    events: list[tuple[str, str | None, int | None]] = []
+
+    def _fake_pick_idle_gpu(*, device_config, logger):
+        events.append(("pick_idle_gpu", os.environ.get("CUDA_VISIBLE_DEVICES"), None))
+        os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+        from watersic.utils.device import DeviceSelection
+
+        return DeviceSelection(
+            torch_device="cuda",
+            cuda_visible_devices="6",
+            reason="idle_gpu_selected",
+            gpu_index=6,
+            logical_device_index=0,
+        )
+
+    def _fake_seed_cuda(seed: int) -> None:
+        events.append(("seed_cuda", os.environ.get("CUDA_VISIBLE_DEVICES"), seed))
+
+    monkeypatch.setattr("watersic.utils.runtime.pick_idle_gpu", _fake_pick_idle_gpu)
+    monkeypatch.setattr("watersic.utils.runtime.seed_cuda", _fake_seed_cuda)
+
+    selection = select_runtime_device({}, logging.getLogger("watersic.test_runtime"), seed=123)
+
+    assert selection.cuda_visible_devices == "6"
+    assert events == [
+        ("pick_idle_gpu", None, None),
+        ("seed_cuda", "6", 123),
+    ]
