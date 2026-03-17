@@ -13,7 +13,7 @@ calibration:
   split: train
   sequence_length: 2048
   num_sequences: 1188
-  batch_size: 2
+  batch_size: 1
 layer:
   damping: 1.0e-4
   binary_search_iterations: 30
