@@ -2,10 +2,10 @@
 
 ## Critical Blockers
 
-1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the repaired adaptive-mixing `64`-chunk point, but it is still above the paper’s `10.57` PPL result. Current best completed result: `11.1874` PPL at `2.9984` effective bits, an absolute gap of `+0.6174`.
-2. Calibration clearly helped when moving from `8` to `16` and again from `16` to `32` chunks on the rescaler-only path, and the repaired adaptive-mixing path only became competitive once calibration increased materially. The strongest remaining uncertainty on the best validated path is how much more of the residual `+0.6174` paper gap is still calibration-limited versus how much is now concentrated in the remaining residual-path outliers.
-3. Repaired adaptive mixing is now beneficial at larger calibration scale: the `64`-chunk repaired run beats both repaired-mixing `8` and rescaler-only `32`, but it still has not matched the paper.
-4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` quality gap is reduced further on the now-validated mainline path.
+1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the paper-scale repaired adaptive-mixing point. Current best completed result: `10.6031` PPL at `2.9984` effective bits, an absolute gap of `+0.0331` versus the paper’s `10.57`.
+2. Calibration clearly helped when moving from `8` to `16`, `32`, `64`, and then full paper-scale calibration. The remaining uncertainty is no longer about gross quality failure; it is whether the residual `+0.0331` gap is ordinary run variance or a small remaining implementation/revision mismatch.
+3. Repaired adaptive mixing is now clearly beneficial when given sufficient calibration. The full paper-scale run nearly matches the paper, so adaptive mixing should now be treated as part of the best validated `Llama-3.2-1B` path rather than as a secondary branch.
+4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` paper-scale result and final paper-comparison reporting are fully wrapped up.
 5. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
 6. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
 7. Paper-scale calibration on the current A6000 setup is expensive even on the stable mainline path:
@@ -21,11 +21,11 @@
 
 ## Implementation Gaps
 
-1. The repo now has a full-model `Llama-3.2-1B` result, but not yet a paper-matching one. The remaining work is quality recovery, not basic end-to-end execution.
+1. The repo now has a full paper-scale `Llama-3.2-1B` result that very nearly matches the paper. The remaining work on this model is final comparison/report cleanup, not basic quality recovery.
 2. Diagonal rescalers are now validated on the full-model path and improve PPL materially.
 3. The original upgraded general-pipeline adaptive-mixing search is validated end-to-end, but its old local objective/search coupling did not improve full-model quality. The repaired search path now reuses the step-1 Q/K/V scales during the coordinate search and is validated on both a `2`-layer prefix and a full-model run.
-4. The current best validated path family has now been completed at `8`, `16`, `32`, and `64` calibration chunks, with the best completed point now on the repaired adaptive-mixing branch at `64`.
-5. Adaptive mixing remains implemented, paper-audited, stable, and now beneficial at larger calibration budget, but it is not yet validated as fully paper-matching.
+4. The current best validated path family has now been completed at `8`, `16`, `32`, `64`, and full paper-scale calibration, with the best completed point now on the repaired adaptive-mixing paper-scale branch.
+5. Adaptive mixing remains implemented, paper-audited, stable, and now beneficial at larger calibration budget; the paper-scale `Llama-3.2-1B` run shows it is effectively paper-matching on this model.
 6. Qwen3-8B was intentionally not run in this round.
 7. New runs will report exact Huffman shortest/longest symbol lengths, but older reports can only mark those fields as unavailable unless the quantization run is repeated.
 8. If larger batch sizes are used later, `batch_size=2` is the current evidence-backed ceiling for the full reference-stat mainline path on this A6000 without changing experiment structure.

@@ -1,5 +1,31 @@
 # Reproduction Log
 
+## 2026-03-20
+
+- Completed the full paper-scale repaired adaptive-mixing `Llama-3.2-1B` run:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
+  - model config: `configs/paper_comparable/models/llama32_1b.yaml`
+  - quant config: `configs/paper_comparable/quant/watersic_llama32_1b_paperscale.yaml`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale.md`
+  - achieved effective bits: `2.9984`
+  - entropy bits: `2.9864`
+  - Huffman bits: `3.0379`
+  - Huffman shortest/longest symbol lengths: `1` / `25`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `10.6031`
+  - total runtime: `188979.22s`
+  - quantization runtime: `188876.89s`
+  - peak GPU memory: `32.69 GiB`
+  - quantization anomalies: none
+- Result interpretation from the completed paper-scale run:
+  - it beats the previous best completed point `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64` (`11.1874`) by `0.5843` PPL
+  - it reduces the paper gap from `+0.6174` to `+0.0331`
+  - the repaired adaptive-mixing path now very nearly matches the paper’s `10.57` reference on `Llama-3.2-1B`
+  - the remaining worst layers are still concentrated in residual-path projections, especially `o_proj`, with `down_proj` still next
+
 ## 2026-03-17
 
 - Completed the larger-calibration repaired adaptive-mixing full-model rerun:
