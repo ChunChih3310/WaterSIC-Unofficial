@@ -20,8 +20,12 @@ class TokenBlockDataset:
         return int(self.input_ids.shape[0])
 
     def batches(self, batch_size: int):
+        use_pin_memory = torch.cuda.is_available()
         for start in range(0, len(self), batch_size):
-            yield self.input_ids[start : start + batch_size]
+            batch = self.input_ids[start : start + batch_size]
+            if use_pin_memory:
+                batch = batch.pin_memory()
+            yield batch
 
 
 def _tokenizer_cache_identity(tokenizer) -> dict[str, object]:

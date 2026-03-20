@@ -127,7 +127,7 @@ def collect_layer_statistics(
 
     collect_attentions = any(is_attention_weighted_target(spec.kind) for spec in layer_specs)
     for batch_index, batch in enumerate(calibration_dataset.batches(calibration_batch_size)):
-        batch = batch.to(device)
+        batch = batch.to(device, non_blocking=True)
         with torch.no_grad():
             with ModuleInputCollector(model, module_paths=module_paths, layer_paths=[layer_path]) as q_store:
                 outputs_q = model(input_ids=batch, use_cache=False, output_attentions=collect_attentions)
@@ -139,7 +139,7 @@ def collect_layer_statistics(
         if reference_model is not None:
             with torch.no_grad():
                 with ModuleInputCollector(reference_model, module_paths=module_paths, layer_paths=[layer_path]) as ref_store:
-                    outputs_ref = reference_model(input_ids=batch.to(reference_device), use_cache=False, output_attentions=collect_attentions)
+                    outputs_ref = reference_model(input_ids=batch.to(reference_device, non_blocking=True), use_cache=False, output_attentions=collect_attentions)
             ref_layer_input = ref_store.layer_inputs[layer_path]
             ref_attn = outputs_ref.attentions[layer_specs[0].layer_index].detach().cpu() if collect_attentions else None
         q_attn = outputs_q.attentions[layer_specs[0].layer_index].detach().cpu() if collect_attentions else None
@@ -161,10 +161,10 @@ def collect_layer_statistics(
                 acc["sigma_delta_x_hat"].update(delta, q_input)
 
         del outputs_q
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
         logger.info("Collected calibration batch %d for layer %s", batch_index, layer_path)
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     finalized: dict[str, LayerStatistics] = {}
     for spec in layer_specs:
