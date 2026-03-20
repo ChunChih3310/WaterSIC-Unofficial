@@ -5,6 +5,13 @@ Paper reference at `3.00` bits:
 - baseline BF16 PPL: `9.76`
 - WaterSIC PPL: `10.57`
 
+Validation rerun for the current best paper-scale artifact:
+
+- artifact: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
+- validation-split PPL: `10.9310`
+- gap vs paper: `+0.3610`
+- note: the `H` row below is the original test-split run report for the same artifact (`10.6031`)
+
 Huffman shortest/longest symbol lengths are now part of the run-report schema. These historical completed runs predate integer-code serialization for exact backfill, so their code-length ranges are shown as `n/a`.
 
 ## Overview
@@ -48,11 +55,12 @@ Huffman shortest/longest symbol lengths are now part of the run-report schema. T
 
 ## Interpretation
 
-1. `H` is now the best completed `Llama-3.2-1B` point in the repo.
+1. `H` is now the best completed `Llama-3.2-1B` quantized artifact in the repo.
    - It improves PPL by `0.5843` over `G`.
    - It improves PPL by `1.1775` over `F`.
    - It improves PPL by `5.0998` over `B`.
    - It reduces the paper gap from `+0.6174` to `+0.0331`.
+   - On a validation rerun of the same artifact, the paper-comparable gap is `+0.3610`.
 
 2. Calibration continues to help on the validated rescaler-only path.
    - `8 -> 16`: `15.7029 -> 12.4574`
@@ -91,4 +99,4 @@ Huffman shortest/longest symbol lengths are now part of the run-report schema. T
 
 ## Next Step
 
-The next step is to update the final paper-comparison report around the paper-scale `Llama-3.2-1B` result and then decide whether the remaining `+0.0331` gap is within ordinary run variance before broadening to Qwen3-8B.
+The next step is to explain why the validation rerun (`10.9310`) is noticeably higher than the original test-split benchmark (`10.6031`) before broadening to Qwen3-8B.

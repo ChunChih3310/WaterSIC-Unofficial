@@ -2,10 +2,10 @@
 
 ## Critical Blockers
 
-1. The best completed full-model `Llama-3.2-1B` run at about `3.0` bits is now the paper-scale repaired adaptive-mixing point. Current best completed result: `10.6031` PPL at `2.9984` effective bits, an absolute gap of `+0.0331` versus the paper’s `10.57`.
-2. Calibration clearly helped when moving from `8` to `16`, `32`, `64`, and then full paper-scale calibration. The remaining uncertainty is no longer about gross quality failure; it is whether the residual `+0.0331` gap is ordinary run variance or a small remaining implementation/revision mismatch.
-3. Repaired adaptive mixing is now clearly beneficial when given sufficient calibration. The full paper-scale run nearly matches the paper, so adaptive mixing should now be treated as part of the best validated `Llama-3.2-1B` path rather than as a secondary branch.
-4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` paper-scale result and final paper-comparison reporting are fully wrapped up.
+1. The best completed full-model `Llama-3.2-1B` quantized artifact remains the paper-scale repaired adaptive-mixing point. Its original test-split report is `10.6031` PPL at `2.9984` effective bits, but the matched WikiText-2 validation rerun on that same artifact is `10.9310`, an absolute gap of `+0.3610` versus the paper’s `10.57`.
+2. The main split-mismatch caveat is now removed. The remaining `Llama-3.2-1B` difference is a direct validation-to-validation gap, not an eval-split artifact.
+3. Repaired adaptive mixing is now clearly beneficial when given sufficient calibration, but the strictly paper-comparable validation result is no longer “nearly exact”; it is still reasonably close, but meaningfully above the paper.
+4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` validation-gap diagnosis is wrapped up cleanly.
 5. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
 6. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
 7. Paper-scale calibration on the current A6000 setup is expensive even on the stable mainline path:
@@ -21,15 +21,19 @@
 
 ## Implementation Gaps
 
-1. The repo now has a full paper-scale `Llama-3.2-1B` result that very nearly matches the paper. The remaining work on this model is final comparison/report cleanup, not basic quality recovery.
+1. The repo now has a full paper-scale `Llama-3.2-1B` result and a matched validation rerun on the saved artifact. The remaining work on this model is to explain the residual validation gap, not to finish the basic pipeline.
 2. Diagonal rescalers are now validated on the full-model path and improve PPL materially.
 3. The original upgraded general-pipeline adaptive-mixing search is validated end-to-end, but its old local objective/search coupling did not improve full-model quality. The repaired search path now reuses the step-1 Q/K/V scales during the coordinate search and is validated on both a `2`-layer prefix and a full-model run.
 4. The current best validated path family has now been completed at `8`, `16`, `32`, `64`, and full paper-scale calibration, with the best completed point now on the repaired adaptive-mixing paper-scale branch.
-5. Adaptive mixing remains implemented, paper-audited, stable, and now beneficial at larger calibration budget; the paper-scale `Llama-3.2-1B` run shows it is effectively paper-matching on this model.
+5. Adaptive mixing remains implemented, paper-audited, stable, and now beneficial at larger calibration budget; however, the matched validation rerun shows that the final `Llama-3.2-1B` point is still above the paper by `+0.3610`.
 6. Qwen3-8B was intentionally not run in this round.
 7. New runs will report exact Huffman shortest/longest symbol lengths, but older reports can only mark those fields as unavailable unless the quantization run is repeated.
 8. If larger batch sizes are used later, `batch_size=2` is the current evidence-backed ceiling for the full reference-stat mainline path on this A6000 without changing experiment structure.
 9. GPU auto-selection is now more conservative than the original implementation, but it still depends on `nvidia-smi` process visibility. On MIG-enabled or driver-restricted systems where per-process visibility is incomplete, the selector falls back to memory-first ranking and logs a warning instead of pretending the GPU is fully idle.
+10. The remaining `Llama-3.2-1B` caveats are now mostly reproducibility details rather than missing algorithmic pieces:
+   - the repo uses the Hugging Face `main` revision for both model and tokenizer, while the paper does not pin an exact public revision in the extracted text
+   - the repo’s paper-scale calibration budget is `1188` non-overlapping `2048`-token chunks from the current tokenizer pipeline; this is consistent with the stated full-train-split calibration protocol, but the paper does not publish an exact chunk count in the extracted text
+   - `reference_stats_effective_count` is `109 / 112` because the first-layer QKV block has no prior quantized predecessor; this is expected rather than a bug
 
 ## Already Validated
 

@@ -20,6 +20,16 @@
 - peak GPU memory: `32.69 GiB`
 - quantization anomalies: none
 
+## Validation Benchmark
+
+- eval config: `configs/eval/wikitext2_validation.yaml`
+- validation-split PPL: `10.9310`
+- previous test-split PPL from the same artifact: `10.6031`
+- paper reference at `3.00` bits: `10.57`
+- validation gap vs paper: `+0.3610`
+
+This removes the previous split-mismatch caveat for the final `Llama-3.2-1B` paper comparison. The remaining difference is now a direct validation-vs-validation numerical gap, not an evaluation-split mismatch.
+
 ## Comparison
 
 - previous best completed point:
@@ -31,7 +41,8 @@
 Absolute differences:
 
 - vs repaired adaptive-mixing `64` chunks: `-0.5843`
-- vs paper: `+0.0331`
+- vs paper on the original test-split run: `+0.0331`
+- vs paper on the validation rerun: `+0.3610`
 
 ## Error Concentration
 
@@ -55,4 +66,4 @@ The remaining distortion is still concentrated in residual-path projections, esp
 
 ## Interpretation
 
-This paper-scale run is the current best completed `Llama-3.2-1B` result in the repo. It nearly matches the paper’s reported `10.57` PPL at `3.00` bits, with only a `+0.0331` absolute gap. At this point the remaining discrepancy is small enough that ordinary run variance, model/tokenizer revision differences, or small implementation details are more plausible explanations than any large missing algorithmic component.
+This paper-scale run remains the current best completed `Llama-3.2-1B` quantized artifact in the repo. The original test-split benchmark was `10.6031`, but the validation rerun on the same artifact is `10.9310`. That means the main split-mismatch caveat is now removed, but the paper-comparable validation number is not as close as the earlier test-split number. The remaining gap to the paper on the matched validation protocol is `+0.3610`, which is still modest but no longer small enough to dismiss as pure noise.

@@ -25,6 +25,31 @@
   - it reduces the paper gap from `+0.6174` to `+0.0331`
   - the repaired adaptive-mixing path now very nearly matches the paper’s `10.57` reference on `Llama-3.2-1B`
   - the remaining worst layers are still concentrated in residual-path projections, especially `o_proj`, with `down_proj` still next
+- Audited the finished paper-scale `Llama-3.2-1B` result against the paper:
+  - strong matches:
+    - target rate `3.0` bits and achieved effective rate `2.9984`
+    - full-train-split paper-scale calibration with `2048`-token non-overlapping chunks
+    - activation drift correction, residual compensation, attention-weighted QKV calibration, repaired adaptive mixing, and diagonal rescalers all enabled
+    - paper-faithful search defaults: damping `1e-4`, binary search `30`, row sampling `10%`, golden-section `15`, dead-feature `tau=1e-3`
+  - remaining caveats:
+    - the paper text says WikiText-2 validation perplexity, while the repo eval config uses the WikiText-2 test split
+    - the repo uses HF `main` model/tokenizer revisions rather than a paper-pinned public revision
+    - the repo’s exact paper-scale chunk count is `1188` under the current tokenizer path, while the paper text does not publish an exact chunk count in the extracted passages
+  - audit conclusion:
+    - no major algorithmic mismatch remains for this `Llama-3.2-1B` point
+    - the remaining differences look minor and are more likely to explain only a very small numeric gap
+- Reran the final benchmark on the same completed paper-scale artifact using the WikiText-2 validation split:
+  - artifact: `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
+  - eval config: `configs/eval/wikitext2_validation.yaml`
+  - log: `outputs/logs/benchmark_model_20260320_202732.log`
+  - validation-split PPL: `10.9310`
+  - previous test-split PPL from the same artifact: `10.6031`
+  - paper reference: `10.57`
+  - validation gap vs paper: `+0.3610`
+- Updated audit conclusion after the validation rerun:
+  - the main remaining caveat about validation vs test is now removed
+  - the final paper-comparable number is `10.9310`, not `10.6031`
+  - the remaining difference from the paper is now a real validation-to-validation gap rather than a split mismatch
 
 ## 2026-03-17
 
