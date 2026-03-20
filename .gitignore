@@ -15,6 +15,8 @@ __pycache__/
 outputs/original/
 outputs/hf_cache/
 outputs/tmp/
+outputs/logs/*.log
+outputs/logs/*.out
 outputs/quantized/**
 !outputs/quantized/**/metadata.json
 !outputs/quantized/**/layer_results.json
@@ -25,6 +27,7 @@ outputs/**/*.bin
 outputs/**/*.safetensors
 outputs/**/*.npy
 outputs/**/*.npz
+outputs/reports/*_probe.json
 outputs/**/*.parquet
 outputs/**/*.arrow
 outputs/**/*.sqlite

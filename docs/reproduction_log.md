@@ -2,6 +2,20 @@
 
 ## 2026-03-20
 
+- Executed the repo cleanup described by `outputs/reports/debug_artifact_cleanup_inventory.md`.
+- Cleanup actions completed:
+  - deleted low-risk redundant files:
+    - short failed `run_watersic_default_*.log` logs
+    - short failed `calib64` relaunch logs
+    - the raw `full_llama32_1b_batchsize_runtime_estimate_probe.json` support file
+  - archived debug and superseded milestone material under `archive/`
+  - archived redundant launcher/interrupted-run logs under `archive/logs/`
+  - left all `review manually` items untouched
+- Important cleanup constraints preserved:
+  - final paper-scale `Llama-3.2-1B` artifact and reports were left intact
+  - best validated calibration-sweep results were left intact
+  - no mainline code or tests were removed
+  - no file outside the repo was touched
 - Produced a final paper audit for the completed `Llama-3.2-1B ~3.0-bit` paper-scale result:
   - report: `outputs/reports/final_paper_audit.md`
   - conclusion:
@@ -199,7 +213,7 @@
 - Added unit coverage for:
   - the corrected ZSIC recursive update
   - the corrected plain-WaterSIC `Y = W L` construction
-- Completed the staged layer-0 attention debug ladder under `outputs/reports/llama32_1b_layer0_attention_debug/`:
+- Completed the staged layer-0 attention debug ladder under `archive/reports/debug/llama32_1b_layer0_attention_debug/`:
   - baseline small-eval PPL: `10.8101`
   - `A. HPTQ-equivalent`: `10.8238`
   - `B. PlainWaterSIC`: `10.8601`
@@ -271,7 +285,7 @@
 - Added a dedicated layer1 residual debugger and config:
   - script: `scripts/debug_o_proj_residual.py`
   - config: `configs/debug/llama32_1b_layer1_o_proj_residual.yaml`
-  - saved outputs: `outputs/reports/llama32_1b_layer1_o_proj_residual_debug/`
+  - saved outputs: `archive/reports/debug/llama32_1b_layer1_o_proj_residual_debug/`
 - Added a residual-path sanity test:
   - `tests/test_residual.py`
   - verifies that zero residual stream error reduces exactly to the no-residual path
@@ -309,8 +323,8 @@
   - quant config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix_residfixed.yaml`
   - eval config: `configs/eval/wikitext2_smoke8.yaml`
   - saved outputs:
-    - `outputs/reports/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.md`
-    - `outputs/reports/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.json`
+    - `archive/reports/milestones/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.md`
+    - `archive/reports/milestones/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.json`
   - result:
     - achieved effective bitwidth: `2.9919`
     - entropy bitwidth: `2.9786`
@@ -573,8 +587,8 @@
   - config: `configs/quant/watersic_llama32_1b_prefix2_reftrue_rescaler_mixing_repaircheck.yaml`
   - log: `outputs/logs/run_llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2_20260315_010200.log`
   - reports:
-    - `outputs/reports/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.json`
-    - `outputs/reports/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.md`
+    - `archive/reports/milestones/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.json`
+    - `archive/reports/milestones/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.md`
   - result:
     - achieved effective bits: `2.9862`
     - entropy bits: `2.9743`

@@ -49,8 +49,8 @@ Validation run:
 
 - config: `configs/quant/watersic_llama32_1b_prefix2_reftrue_rescaler_mixing_repaircheck.yaml`
 - reports:
-  - `outputs/reports/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.json`
-  - `outputs/reports/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.md`
+  - `archive/reports/milestones/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.json`
+  - `archive/reports/milestones/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.md`
 
 Result:
 

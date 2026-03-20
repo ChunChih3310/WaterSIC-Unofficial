@@ -26,7 +26,11 @@
    - `batch_size=2` fits on collection
    - `batch_size=4` and `8` OOM on collection
    - adaptive objective forward fits through `batch_size=8`, but throughput gains are minor
-11. A cleanup inventory now exists at `outputs/reports/debug_artifact_cleanup_inventory.md`, but no cleanup has been performed yet. Any deletion/archive pass should follow that inventory conservatively rather than deleting historical artifacts ad hoc.
+11. The cleanup inventory has now been executed conservatively:
+   - low-risk redundant logs/probe outputs were deleted
+   - debug ladders, superseded milestone reports, and redundant launcher/interrupted-run logs were archived under `archive/`
+   - all `review manually` items were intentionally left in place
+   - the final paper-scale result and key calibration-sweep artifacts were preserved
 
 ## Implementation Gaps
 
@@ -52,7 +56,7 @@
 1. The ZSIC recursive-update bug is fixed. The update now uses `alpha_i` instead of the global `c`.
 2. The transformed-target `Y` construction bug is fixed. The triangular solve now implements `target_cross @ (L^T)^(-1)` instead of `target_cross @ L^(-1)`.
 3. Calibration statistics are now collected under `torch.no_grad()`, removing the paired-model attention OOM path.
-4. The staged layer-0 attention ladder `A` through `H` completed successfully on `Llama-3.2-1B`, with saved configs, logs, and results under `outputs/reports/llama32_1b_layer0_attention_debug/`.
+4. The staged layer-0 attention ladder `A` through `H` completed successfully on `Llama-3.2-1B`, with its saved report bundle now archived under `archive/reports/debug/llama32_1b_layer0_attention_debug/`.
 5. A larger layer-0 validation with `reference_stats` active and rescalers still off remained sane on `8` calibration chunks and `8` eval chunks:
    - baseline small-eval PPL: `8.9880`
    - quantized small-eval PPL: `9.0138`

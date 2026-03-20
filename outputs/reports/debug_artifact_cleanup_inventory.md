@@ -2,11 +2,13 @@
 
 ## Scope and Rule
 
-This is an inventory and recommendation report only.
+This document was created as the source inventory for cleanup and is now kept as a historical record of the pre-cleanup state.
 
-- No files were deleted.
-- No files were moved.
-- No artifacts were rewritten.
+At inventory time:
+
+- no files had been deleted yet
+- no files had been moved yet
+- no cleanup had been performed yet
 
 The goal is to identify conservative cleanup candidates while protecting:
 
@@ -133,6 +135,6 @@ If cleanup happens later, use this order:
 
 ## Current Status
 
-- Cleanup inventory complete: yes
-- Any deletion performed: no
-- Any file moved or rewritten for cleanup: no
+- Inventory complete: yes
+- This document records the pre-cleanup recommendations: yes
+- Actual cleanup later executed from this inventory: yes

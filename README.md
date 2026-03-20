@@ -2,6 +2,17 @@
 
 This repository is a serious start on a runnable reproduction of the WaterSIC paper, `"WaterSIC: information-theoretically (near) optimal linear layer quantization"` (`paper/2603.04956v1.pdf`).
 
+Current best completed `Llama-3.2-1B ~3.0-bit` result:
+
+- paper-scale repaired adaptive-mixing artifact:
+  - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
+- original test-split WikiText-2 PPL:
+  - `10.6031`
+- matched validation-split WikiText-2 PPL:
+  - `10.9310`
+- paper reference at `3.00` bits:
+  - `10.57`
+
 The current codebase implements:
 
 - repo-local conda environment setup
@@ -36,12 +47,11 @@ Implemented now:
 - bitrate accounting for raw, entropy, Huffman, and side-information overhead
 - reproducible configs and runnable scripts
 
-Partially implemented / still being tightened:
+Still being tightened:
 
-- adaptive mixing search for `epsilon_qr` and `epsilon_aw`
-- exact paper-style calibration pairing between full-precision and partially-quantized models in long runs
-- broader overnight reproductions beyond the first Llama smoke/full runs
-- final paper-vs-ours comparison once overnight experiments complete
+- explaining the remaining `Llama-3.2-1B` validation gap versus the paper
+- broader paper-scale reproduction on `Qwen3-8B`
+- exact public revision pinning where the paper does not expose a public reference snapshot
 
 See [docs/known_issues.md](/nfs_tmp/Compression_team/src/WaterSIC/docs/known_issues.md) for the honest status.
 
@@ -131,6 +141,12 @@ python scripts/make_report.py
 - `outputs/quantized/`: saved quantized artifacts
 - `outputs/eval/`: evaluation outputs when emitted separately
 - `outputs/reports/`: JSON and Markdown run reports
+- `archive/`: archived debug history, superseded milestone reports, and redundant launcher/interrupted-run logs
+
+Note:
+
+- `outputs/logs/*.log` and `outputs/logs/*.out` are now ignored by default to keep the working tree clean
+- final reproducible results are retained through the saved quantized artifacts, JSON/Markdown reports, and docs rather than through committing every local run log
 
 ## Repository Layout
 
@@ -139,6 +155,7 @@ python scripts/make_report.py
 - `scripts/`: runnable entrypoints
 - `tests/`: numerical and guardrail tests
 - `docs/`: implementation notes, pipeline docs, and reproduction log
+- `archive/`: secondary historical material kept for reference but not part of the mainline result surface
 
 ## Troubleshooting
 
