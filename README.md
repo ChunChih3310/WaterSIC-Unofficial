@@ -54,6 +54,7 @@ Still being tightened:
 - exact public revision pinning where the paper does not expose a public reference snapshot
 
 See [docs/known_issues.md](/nfs_tmp/Compression_team/src/WaterSIC/docs/known_issues.md) for the honest status.
+The full historical detail is retained under [archive/README.md](/nfs_tmp/Compression_team/src/WaterSIC/archive/README.md).
 
 ## Environment Setup
 

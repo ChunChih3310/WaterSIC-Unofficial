@@ -1,0 +1,922 @@
+# Reproduction Log
+
+## 2026-03-20
+
+- Executed the repo cleanup described by `outputs/reports/debug_artifact_cleanup_inventory.md`.
+- Cleanup actions completed:
+  - deleted low-risk redundant files:
+    - short failed `run_watersic_default_*.log` logs
+    - short failed `calib64` relaunch logs
+    - the raw `full_llama32_1b_batchsize_runtime_estimate_probe.json` support file
+  - archived debug and superseded milestone material under `archive/`
+  - archived redundant launcher/interrupted-run logs under `archive/logs/`
+  - left all `review manually` items untouched
+- Important cleanup constraints preserved:
+  - final paper-scale `Llama-3.2-1B` artifact and reports were left intact
+  - best validated calibration-sweep results were left intact
+  - no mainline code or tests were removed
+  - no file outside the repo was touched
+- Produced a final paper audit for the completed `Llama-3.2-1B ~3.0-bit` paper-scale result:
+  - report: `outputs/reports/final_paper_audit.md`
+  - conclusion:
+    - the repo now matches the paper closely on the main WaterSIC algorithmic path and search settings
+    - the strict paper-comparable number is the validation rerun, not the earlier test-split result
+    - the most honest classification is `near-reproduction`, not `exact paper match`
+  - remaining caveats from the audit:
+    - matched validation PPL is still `10.9310` versus the paper’s `10.57`
+    - the repo uses HF `main` model/tokenizer revisions rather than a paper-pinned public revision
+    - the exact tokenizer/BOS/chunk-count realization is not proven identical, even though the method matches the paper protocol
+- Produced a final worst-layer diagnosis for the best current path:
+  - report: `outputs/reports/final_worst_layer_diagnosis.md`
+  - conclusion:
+    - by relative weight MSE, the remaining distortion is still concentrated in residual-path projections
+    - the hardest layers in the final paper-scale run are:
+      - `model.layers.0.self_attn.o_proj`
+      - `model.layers.2.self_attn.o_proj`
+      - `model.layers.1.mlp.down_proj`
+      - `model.layers.4.self_attn.o_proj`
+      - `model.layers.5.self_attn.o_proj`
+    - by the saved `weighted_error` proxy, the largest remaining activation/input-pressure terms still cluster in `k_proj`
+    - the most plausible remaining limiter is residual-path sensitivity, not a missing major algorithmic block
+- Prepared a conservative cleanup inventory:
+  - report: `outputs/reports/debug_artifact_cleanup_inventory.md`
+  - scope:
+    - obsolete debug-only reports
+    - interrupted or redundant launcher/run logs
+    - superseded smoke/intermediate artifacts
+    - stale probe outputs and debug configs/scripts
+  - important:
+    - no files were deleted
+    - no files were moved
+    - no cleanup was performed yet
+- Completed the full paper-scale repaired adaptive-mixing `Llama-3.2-1B` run:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
+  - model config: `configs/paper_comparable/models/llama32_1b.yaml`
+  - quant config: `configs/paper_comparable/quant/watersic_llama32_1b_paperscale.yaml`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale.md`
+  - achieved effective bits: `2.9984`
+  - entropy bits: `2.9864`
+  - Huffman bits: `3.0379`
+  - Huffman shortest/longest symbol lengths: `1` / `25`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `10.6031`
+  - total runtime: `188979.22s`
+  - quantization runtime: `188876.89s`
+  - peak GPU memory: `32.69 GiB`
+  - quantization anomalies: none
+- Result interpretation from the completed paper-scale run:
+  - it beats the previous best completed point `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64` (`11.1874`) by `0.5843` PPL
+  - it reduces the paper gap from `+0.6174` to `+0.0331`
+  - the repaired adaptive-mixing path now very nearly matches the paper’s `10.57` reference on `Llama-3.2-1B`
+  - the remaining worst layers are still concentrated in residual-path projections, especially `o_proj`, with `down_proj` still next
+- Audited the finished paper-scale `Llama-3.2-1B` result against the paper:
+  - strong matches:
+    - target rate `3.0` bits and achieved effective rate `2.9984`
+    - full-train-split paper-scale calibration with `2048`-token non-overlapping chunks
+    - activation drift correction, residual compensation, attention-weighted QKV calibration, repaired adaptive mixing, and diagonal rescalers all enabled
+    - paper-faithful search defaults: damping `1e-4`, binary search `30`, row sampling `10%`, golden-section `15`, dead-feature `tau=1e-3`
+  - remaining caveats:
+    - the paper text says WikiText-2 validation perplexity, while the repo eval config uses the WikiText-2 test split
+    - the repo uses HF `main` model/tokenizer revisions rather than a paper-pinned public revision
+    - the repo’s exact paper-scale chunk count is `1188` under the current tokenizer path, while the paper text does not publish an exact chunk count in the extracted passages
+  - audit conclusion:
+    - no major algorithmic mismatch remains for this `Llama-3.2-1B` point
+    - the remaining differences look minor and are more likely to explain only a very small numeric gap
+- Reran the final benchmark on the same completed paper-scale artifact using the WikiText-2 validation split:
+  - artifact: `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
+  - eval config: `configs/eval/wikitext2_validation.yaml`
+  - log: `outputs/logs/benchmark_model_20260320_202732.log`
+  - validation-split PPL: `10.9310`
+  - previous test-split PPL from the same artifact: `10.6031`
+  - paper reference: `10.57`
+  - validation gap vs paper: `+0.3610`
+- Updated audit conclusion after the validation rerun:
+  - the main remaining caveat about validation vs test is now removed
+  - the final paper-comparable number is `10.9310`, not `10.6031`
+  - the remaining difference from the paper is now a real validation-to-validation gap rather than a split mismatch
+
+## 2026-03-17
+
+- Completed the larger-calibration repaired adaptive-mixing full-model rerun:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64`
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired_calib64.yaml`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_calib64.md`
+  - achieved effective bits: `2.9984`
+  - entropy bits: `2.9865`
+  - Huffman bits: `3.0376`
+  - Huffman shortest/longest symbol lengths: `1` / `25`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `11.1874`
+  - total runtime: `39290.59s`
+  - peak GPU memory: `32.69 GiB`
+  - quantization anomalies: none
+- Result interpretation from the completed `64`-chunk repaired adaptive-mixing run:
+  - it beats the previous best completed point `llama32_1b_full_3p0bit_reftrue_rescaler_calib32` (`11.7806`) by `0.5932` PPL
+  - it reduces the paper gap from `+1.2106` to `+0.6174`
+  - repaired adaptive mixing now appears materially calibration-limited rather than intrinsically harmful
+  - the remaining largest distortion still concentrates in `o_proj` / `down_proj`, with the worst single layer now `model.layers.1.mlp.down_proj`
+- Audited the repo-local GPU auto-selection logic after a real bad pick on a low-utilization but non-idle A6000.
+- Fixed the selector to rank GPUs conservatively when `CUDA_VISIBLE_DEVICES` is unset:
+  - prefer `0` visible compute processes first
+  - then lower used memory / higher free memory
+  - then lower utilization as a tie-breaker
+- Found and fixed a second GPU-selection bug in the assignment path:
+  - the old code queried `torch.cuda.is_available()` before setting `CUDA_VISIBLE_DEVICES`
+  - that could initialize CUDA too early and make the later physical-GPU remap unsafe
+  - the selector now chooses the physical GPU first, sets `CUDA_VISIBLE_DEVICES`, and only then touches `torch.cuda`
+- Clarified logging so runs now report:
+  - physical GPU chosen by the selector
+  - logical torch device after remapping (`cuda:0`)
+  - the exact `CUDA_VISIBLE_DEVICES` mapping used
+- Tightened the fail-safe policy:
+  - default auto-selection now refuses to grab a busy GPU
+  - if no GPU meets the idle thresholds, the program raises a clear error and stops
+  - choosing the least-bad busy GPU now requires an explicit `device.allow_busy_fallback: true` override
+- Added explicit idle thresholds:
+  - `device.min_free_memory_gib`
+  - `device.max_used_memory_gib`
+- Added full ranking diagnostics to the runtime logs so each auto-pick now records:
+  - process count
+  - process memory
+  - used/free memory
+  - utilization
+  - idle-threshold classification
+- Added deterministic mocked tests covering:
+  - low-utilization busy GPU losing to a slightly busier zero-process GPU
+  - zero-process GPU with more free memory winning over a smaller-memory alternative
+  - all-GPUs-busy fallback with explicit warning
+  - strict respect for pre-set `CUDA_VISIBLE_DEVICES`
+- Updated the README and default config to document the new GPU-selection policy and thresholds.
+
+## 2026-03-13
+
+- Initialized a repo-local git repository inside `WaterSIC`.
+- Created the repo-local conda spec at `configs/env/watersic_conda.yml`.
+- Built the repo-local conda environment under `.conda/watersic`.
+- Implemented:
+  - path guard
+  - repo-local cache/env utilities
+  - GPU selection
+  - Huffman bitrate accounting
+  - second-moment accumulation
+  - dead-feature erasure
+  - transformed-space ZSIC with LMMSE correction
+  - binary search over `c`
+  - transformed-objective row/column rescalers
+  - sequential model quantizer
+  - WikiText-2 loader and perplexity evaluator
+  - runnable scripts/configs
+- Added unit tests for the numerical helpers and path guard.
+- Extracted key formulas and reference tables from the local paper PDF.
+- Started the first real `Llama-3.2-1B` smoke run using:
+  - `configs/models/llama32_1b.yaml`
+  - `configs/quant/watersic_llama32_1b_smoke.yaml`
+  - `configs/eval/wikitext2.yaml`
+- Completed four real `Llama-3.2-1B` smoke runs, each quantizing layer 0 only at an achieved rate near 3.0 bits/weight:
+  - `llama32_1b_smoke_3p0bit`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `15835.2186`
+    - note: run started before the first local commit, so the saved git hash is `unknown`
+  - `llama32_1b_smoke_3p0bit_attnfix`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `24887.4715`
+    - attention-weighting formula corrected to match equation (19)
+  - `llama32_1b_smoke_3p0bit_covfix`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `24887.4715`
+    - dead-feature pruning moved onto the final mixed covariance
+  - `llama32_1b_smoke_3p0bit_noaw`
+    - baseline PPL: `9.7041`
+    - quantized PPL: `18227.7697`
+    - QKV attention weighting disabled for diagnosis
+- Diagnostic conclusion from the smoke runs:
+  - the pipeline is end-to-end runnable and produces artifacts/reports
+  - the current implementation is not yet numerically faithful for Q/K projections
+  - disabling attention weighting improves the Q/K transformed error by about 2.5-3x but does not restore usable perplexity
+- Qwen3-8B was configured but not run yet.
+- Started a strict staged correctness-debug campaign focused only on `Llama-3.2-1B` layer-0 attention (`q_proj`, `k_proj`, `v_proj`, `o_proj`).
+- Found and fixed a core ZSIC bug:
+  - the recursive update had been subtracting `c * z_i * L_i,:`
+  - the correct update is `alpha_i * z_i * L_i,:`
+- Found and fixed a second core transformed-objective bug:
+  - the triangular solve for `Y` had been computing `target_cross @ L^(-1)`
+  - the correct quantity is `target_cross @ (L^T)^(-1)`
+- Found and fixed a runtime bug in calibration-stat collection:
+  - paired-model attention-stat forwards were missing `torch.no_grad()`
+  - this caused unnecessary memory growth and OOM during the layer-0 debug run
+- Added unit coverage for:
+  - the corrected ZSIC recursive update
+  - the corrected plain-WaterSIC `Y = W L` construction
+- Completed the staged layer-0 attention debug ladder under `archive/reports/debug/llama32_1b_layer0_attention_debug/`:
+  - baseline small-eval PPL: `10.8101`
+  - `A. HPTQ-equivalent`: `10.8238`
+  - `B. PlainWaterSIC`: `10.8601`
+  - `C. + LMMSE`: `10.8666`
+  - `D. + activation drift correction`: `10.8691`
+  - `E. + residual correction`: `10.8691`
+  - `F. + attention weighting`: `10.8712`
+  - `G. + adaptive mixing`: `10.8744`
+  - `H. + diagonal rescalers`: `10.8925`
+- Immediate debug conclusion from the staged run:
+  - after the two core math fixes, no stage in `A` through `H` became unstable on the small layer-0 attention debug ladder
+  - the earlier catastrophic behavior was caused by shared core math, not by QKV-specific WaterSIC extras
+  - residual correction is a no-op in this exact layer-0-only setup, as expected
+- Ran a larger layer-0 attention validation with `reference_stats` active and rescalers still off:
+  - config: `configs/debug/llama32_1b_layer0_attention_refsafe_large.yaml`
+  - calibration: `8` train chunks
+  - probe eval: `8` test chunks
+  - baseline small-eval PPL: `8.9880`
+  - quantized small-eval PPL: `9.0138`
+  - optimized mixing:
+    - `epsilon_qr = 0.0031056200151418556`
+    - `epsilon_aw = 0.7983738762488434`
+  - conclusion:
+    - the fixed path stayed numerically sane at larger layer-0 scope
+    - `reference_stats` were effective for `o_proj`
+    - no NaN/Inf or Cholesky failures were observed
+- Reran multi-layer smoke quantization for the first `11` modules of `Llama-3.2-1B` with:
+  - `reference_stats: true`
+  - staged same-layer stat refresh (`qkv -> o_proj -> gate/up -> down_proj`)
+  - rescalers off
+  - config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix.yaml`
+  - eval config: `configs/eval/wikitext2_smoke8.yaml`
+  - result:
+    - achieved effective bitwidth: `2.9912`
+    - entropy bitwidth: `2.9779`
+    - Huffman bitwidth: `3.0340`
+    - quantized small-eval PPL: `700443.0656`
+  - first new blocker:
+    - `model.layers.1.self_attn.o_proj`
+    - relative weight MSE: `4.0915395089e9`
+    - `reference_stats_delta_norm = 3.0349e-2`
+    - `target_y_max_abs = 85.9470`
+    - `alpha` range: `[10.6854, 435.0766]`
+  - diagnosis:
+    - shared core math remains sane
+    - same-layer stat refresh alone was not enough
+    - the next true blocker lies on the residual-correction path for `o_proj`
+- Ran a controlled ablation with the same staged-refresh path but `use_residual_correction: false`:
+  - config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix_noresid.yaml`
+  - result:
+    - achieved effective bitwidth: `2.9917`
+    - entropy bitwidth: `2.9784`
+    - Huffman bitwidth: `3.0341`
+    - quantized small-eval PPL: `9.6219`
+  - critical comparison at `model.layers.1.self_attn.o_proj`:
+    - with residual correction:
+      - relative weight MSE: `4.0915395089e9`
+      - `target_y_max_abs = 85.9470`
+    - without residual correction:
+      - relative weight MSE: `1.5426e-1`
+      - `target_y_max_abs = 0.1904`
+  - conclusion:
+    - the current residual-compensation implementation is the remaining blocker for broader sequential runs
+    - the rest of the staged sequential path is now sane enough to continue debugging from a narrow, specific fault
+- Audited the paper’s residual-correction equation for `o_proj` and found the shared implementation bug:
+  - paper equation (18) uses `W Sigma_X,Xhat + Sigma_Delta,Xhat` before the triangular transform
+  - the old code incorrectly formed the residual addend via a solve against `Sigma_Xhat^{-1}`
+  - on `layer1 self_attn.o_proj`, that wrong formula inflated a tiny residual term into a huge transformed target
+- Added a dedicated layer1 residual debugger and config:
+  - script: `scripts/debug_o_proj_residual.py`
+  - config: `configs/debug/llama32_1b_layer1_o_proj_residual.yaml`
+  - saved outputs: `archive/reports/debug/llama32_1b_layer1_o_proj_residual_debug/`
+- Added a residual-path sanity test:
+  - `tests/test_residual.py`
+  - verifies that zero residual stream error reduces exactly to the no-residual path
+- Completed the narrow `layer1 self_attn.o_proj` audit with:
+  - `reference_stats: true`
+  - rescalers off
+  - stage timing: same-layer, post-QKV, pre-o_proj
+  - exact delta definition: `Delta = R - R_hat = reference_layer_input - quantized_layer_input`
+  - official vs manual collector checks:
+    - `Sigma_Delta,Xhat` mismatch: `0`
+    - `Sigma_Xhat` mismatch: `0`
+    - wrong-sign mismatch: `3.8401e-3`
+  - norm/conditioning diagnostics at the target module:
+    - `||W Sigma_X,Xhat||_F = 5.3348e-1`
+    - `||Sigma_Delta,Xhat||_F = 1.9200e-3`
+    - residual/base ratio at scale `1.0`: `3.5990e-3`
+    - `cond(Sigma_Xhat) = 6.5425e5`
+    - `cond(H after damping) = 5.4329e5`
+    - no dead features were pruned (`2048 -> 2048`)
+  - residual-strength sweep results:
+    - scale `0.00`: PPL `9.6219`, rel weight MSE `1.5426e-1`, `target_y_max_abs = 0.190427`
+    - scale `0.25`: PPL `9.6313`, rel weight MSE `1.5752e-1`
+    - scale `0.50`: PPL `9.6356`, rel weight MSE `1.6780e-1`
+    - scale `0.75`: PPL `9.6459`, rel weight MSE `1.8609e-1`
+    - scale `1.00`: PPL `9.6433`, rel weight MSE `2.1246e-1`, `target_y_max_abs = 0.190439`
+  - legacy-formula audit on the same statistics:
+    - legacy residual-term norm: `5.9003`
+    - legacy residual/base ratio: `11.0599`
+    - legacy `target_y_max_abs = 85.9470`
+  - diagnosis:
+    - timing is correct
+    - sign is correct
+    - the true bug was the wrong residual formula, and that wrong formula caused the scale blow-up
+- Reran the exact same `11`-module multi-layer smoke with residual correction re-enabled under the fixed formula:
+  - quant config: `configs/quant/watersic_llama32_1b_multilayer_smoke_ref_stagefix_residfixed.yaml`
+  - eval config: `configs/eval/wikitext2_smoke8.yaml`
+  - saved outputs:
+    - `archive/reports/milestones/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.md`
+    - `archive/reports/milestones/llama32_1b_multilayer_smoke_3p0bit_ref_stagefix_residfixed.json`
+  - result:
+    - achieved effective bitwidth: `2.9919`
+    - entropy bitwidth: `2.9786`
+    - Huffman bitwidth: `3.0343`
+    - side information: `0.0133`
+    - baseline small-eval PPL: `8.9880`
+    - quantized small-eval PPL: `9.6433`
+    - runtime: `993.99s`
+    - peak memory: `18.65 GiB`
+  - critical comparison at the old blocker:
+    - old residual-enabled run:
+      - `layer1 self_attn.o_proj` rel weight MSE: `4.0915e9`
+      - `target_y_max_abs = 85.9470`
+      - small-eval PPL: `700443.07`
+    - fixed residual-enabled run:
+      - `layer1 self_attn.o_proj` rel weight MSE: `2.1246e-1`
+      - `target_y_max_abs = 0.190439`
+      - small-eval PPL: `9.6433`
+  - conclusion:
+    - the residual-correction blocker at `model.layers.1.self_attn.o_proj` is fixed for the staged smoke path
+    - the next correct scope expansion is the fuller `Llama-3.2-1B` ~`3.0`-bit run, still with rescalers off
+- Completed the first full-model `Llama-3.2-1B` run at about `3.0` bits with the fixed sequential path:
+  - model config: `configs/models/llama32_1b.yaml`
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_norescaler.yaml`
+  - eval config: `configs/eval/wikitext2.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_norescaler_20260313_143248.log`
+  - saved report bundle:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_norescaler.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_norescaler.md`
+  - saved artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_norescaler/`
+- Full-run configuration and status:
+  - `reference_stats: true`
+  - `reference_device: cuda`
+  - residual correction enabled with the fixed formula
+  - staged stat refresh enabled
+  - diagonal rescalers disabled
+  - calibration chunks: `8`
+  - sequence length: `2048`
+  - reference stats requested: `true`
+  - reference stats effective count: `109` of `112` quantized matrices
+- Full-model result:
+  - target global bitwidth: `3.0000`
+  - achieved effective global bitwidth: `2.9984`
+  - raw average bitwidth: `8.4774`
+  - entropy average bitwidth: `2.9865`
+  - Huffman average bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `16.8684`
+  - runtime: `19408.47s` (`5.39h`)
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none (`[]`)
+- Layerwise diagnosis from the full run:
+  - the run completed all `16` transformer layers without NaN/Inf, Cholesky failure, or residual-path blow-up
+  - the remaining distortion is concentrated in residual-path projections, not across the whole model
+  - worst layers by relative weight MSE:
+    - `model.layers.11.self_attn.o_proj`: `0.4860`
+    - `model.layers.13.self_attn.o_proj`: `0.4685`
+    - `model.layers.12.self_attn.o_proj`: `0.4215`
+    - `model.layers.0.self_attn.o_proj`: `0.4164`
+    - `model.layers.4.self_attn.o_proj`: `0.4098`
+  - per-kind mean relative weight MSE:
+    - `o_proj`: `0.3215`
+    - `down_proj`: `0.3034`
+    - `k_proj`: `0.0979`
+    - `v_proj`: `0.0876`
+    - `q_proj`: `0.0696`
+    - `gate_proj`: `0.0502`
+    - `up_proj`: `0.0500`
+- Paper comparison for the first full-model point:
+  - paper baseline BF16 PPL (`Llama-3.2-1B`, Table 1): `9.76`
+  - our baseline BF16 PPL: `9.7041`
+  - absolute difference: `-0.0559`
+  - paper WaterSIC at `3.00` bits PPL: `10.57`
+  - our quantized run at `2.9984` effective bits: `16.8684`
+  - absolute difference: `+6.2984`
+- Immediate conclusion from the full run:
+  - this is the first real paper-comparable full-model point in the repo
+  - it is numerically sane and fully benchmarked
+  - it is not yet a faithful paper match
+  - the current accuracy gap is no longer a stability blocker; it is now a quality gap concentrated mostly in `o_proj` / `down_proj`
+  - the most likely contributors are:
+    - diagonal rescalers still disabled
+    - adaptive mixing in the sequential pipeline still uses fixed config values instead of per-block search
+    - the full run used only `8` calibration chunks as a runtime shortcut
+- Completed the full-model rescaler validation run on top of the stable path:
+  - model config: `configs/models/llama32_1b.yaml`
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler.yaml`
+  - eval config: `configs/eval/wikitext2.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_20260313_221946.log`
+  - saved report bundle:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler.md`
+    - `outputs/reports/full_llama32_1b_rescaler_validation_report.md`
+  - saved artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler/`
+- Rescaler validation configuration and status:
+  - `reference_stats: true`
+  - residual correction enabled with the fixed formula
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled with `max_rescaler_iters: 4`
+  - calibration chunks: `8`
+  - sequence length: `2048`
+  - reference stats effective count: `109 / 112`
+- Rescaler validation result:
+  - target global bitwidth: `3.0000`
+  - achieved effective global bitwidth: `2.9984`
+  - entropy average bitwidth: `2.9865`
+  - Huffman average bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `15.7029`
+  - improvement vs no-rescaler full-model baseline: `-1.1654`
+  - paper gap reduced from `+6.2984` to `+5.1329`
+  - quantization runtime: `18417.68s`
+  - total runtime: `18525.23s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Distortion diagnosis from the rescaler validation:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.3215 -> 0.3170`
+    - `down_proj`: `0.3034 -> 0.3023`
+    - other kinds moved only marginally
+  - worst layers remained concentrated in `o_proj`, but each of the prior top-3 late-layer outliers improved:
+    - `model.layers.11.self_attn.o_proj`: `0.4860 -> 0.4763`
+    - `model.layers.12.self_attn.o_proj`: `0.4215 -> 0.4178`
+    - `model.layers.13.self_attn.o_proj`: `0.4685 -> 0.4596`
+  - representative `down_proj` improvements:
+    - `model.layers.0.mlp.down_proj`: `0.3644 -> 0.3635`
+    - `model.layers.6.mlp.down_proj`: `0.3364 -> 0.3335`
+    - `model.layers.11.mlp.down_proj`: `0.3166 -> 0.3146`
+- Reference-stats coverage audit for the successful full-model path:
+  - non-effective matrices:
+    - `model.layers.0.self_attn.q_proj`
+    - `model.layers.0.self_attn.k_proj`
+    - `model.layers.0.self_attn.v_proj`
+  - all three had `reference_stats_delta_norm = 0.0`
+  - diagnosis:
+    - expected, not a bug
+    - they are the first QKV stage in the network, so no earlier quantized layer exists to create drift at their inputs
+- Decision from the rescaler validation:
+  - diagonal rescalers are stable on the full-model path
+  - they improve `o_proj` distortion
+  - they improve `down_proj` distortion slightly
+  - they improve final WikiText-2 PPL materially
+  - therefore rescalers should remain enabled for the next upgraded full-model run
+- Promoted adaptive mixing to the general sequential pipeline:
+  - per-attention-block search is now implemented in the shared model quantizer
+  - search logic:
+    - initial rate calibration at `epsilon_qr = 0`, `epsilon_aw = 0`
+    - golden-section search over `epsilon_qr`
+    - golden-section search over `epsilon_aw`
+    - final stage quantization reruns the rate search with the selected pair
+  - runtime improvements added for this full-model path:
+    - cached reference `o_proj` inputs per stage
+    - candidate objective forwards stop at the target `o_proj` input instead of running through the full model
+- Started the upgraded full-model quality-recovery run:
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_20260314_033153.log`
+  - status at log start:
+    - rescalers enabled
+    - per-block adaptive mixing search enabled
+    - `golden_section_iterations: 15`
+  - early runtime observation:
+    - the run confirmed the paper-aligned initial search step at layer 0:
+      - `Initial QKV rate-calibration at epsilon_qr=0 epsilon_aw=0 reached wo-input relative MSE 7.913040e-03`
+    - after that point, the first layer-0 search remained active long enough to classify this run as overnight-scale rather than a short follow-up
+- Completed the upgraded full-model quality-recovery run:
+  - quant config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_20260314_033153.log`
+  - saved report bundle:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing.md`
+    - `outputs/reports/full_llama32_1b_adaptive_mixing_upgrade_report.md`
+    - `outputs/reports/full_llama32_1b_quality_recovery_comparison.md`
+  - saved artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing/`
+- Adaptive-mixing upgraded run result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - per-attention-block adaptive mixing search enabled
+  - calibration chunks: `8`
+  - target global bitwidth: `3.0000`
+  - achieved effective global bitwidth: `2.9984`
+  - entropy average bitwidth: `2.9865`
+  - Huffman average bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `16.6096`
+  - runtime: `74349.91s`
+  - quantization anomalies: none
+  - peak GPU memory: `18.65 GiB`
+- What the adaptive-mixing run proved:
+  - the general-pipeline adaptive-mixing search now executes end-to-end on the full model
+  - all attention blocks were optimized with searched `epsilon_qr` / `epsilon_aw`
+  - the run remained numerically sane through all `16` layers
+  - the local `wo`-input search objective improved consistently within each optimized attention block
+- What the adaptive-mixing run did not achieve:
+  - it did not beat the rescaler-only best point
+  - PPL comparison:
+    - no-rescaler: `16.8684`
+    - rescaler-only: `15.7029`
+    - rescaler + mixing search: `16.6096`
+  - therefore the upgraded run is:
+    - `0.2587` PPL better than the no-rescaler baseline
+    - `0.9067` PPL worse than the rescaler-only best point
+- Distortion diagnosis after the upgraded run:
+  - mean relative weight MSE improved substantially for QKV compared with the rescaler-only run:
+    - `q_proj`: `0.0696 -> 0.0611`
+    - `k_proj`: `0.0983 -> 0.0898`
+    - `v_proj`: `0.0876 -> 0.0806`
+  - but the dominant residual-path error kinds did not improve:
+    - `o_proj`: `0.3170 -> 0.3175`
+    - `down_proj`: `0.3023 -> 0.3024`
+  - late-layer `o_proj` outliers remained the top failure modes:
+    - `model.layers.11.self_attn.o_proj`: `0.4777`
+    - `model.layers.13.self_attn.o_proj`: `0.4647`
+    - `model.layers.12.self_attn.o_proj`: `0.4202`
+- Conclusion after the completed upgraded run:
+  - the current best completed `Llama-3.2-1B` point is still the rescaler-only run
+  - adaptive mixing is no longer missing, but it is not yet helping the end-task metric
+  - the immediate next blocker is not basic stability, but objective mismatch:
+    - the local adaptive-mixing optimization improves `wo`-input distortion
+    - that improvement does not currently translate into better full-model WikiText-2 PPL
+  - calibration size beyond `8` chunks is still likely limiting, but it is not yet the single clearest next move while the adaptive-mixing path is still regressing the full-model result
+
+## 2026-03-15
+
+- Re-read the local paper sections on adaptive mixing and wrote a paper audit:
+  - `outputs/reports/adaptive_mixing_paper_audit.md`
+  - key paper-backed conclusion:
+    - the adaptive-mixing search must reuse the step-1 calibrated Q/K/V scales during the `epsilon_qr` and `epsilon_aw` coordinate searches
+    - the final recalibration pass remains necessary after the optimal pair is selected
+- Wrote a mismatch diagnosis from the completed full-model runs:
+  - `outputs/reports/adaptive_mixing_mismatch_diagnosis.md`
+  - diagnosis:
+    - the old implementation was optimizing a moving target because it re-ran binary search over `c` inside every `epsilon` candidate evaluation
+    - this explained both the quality mismatch and most of the runtime blow-up
+- Tested and rejected a stricter shared-stage-`c` interpretation during a narrow repair-check:
+  - interrupted run log:
+    - `outputs/logs/run_llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_20260315_004633.log`
+  - observed failure mode:
+    - layer `0` `v_proj` collapsed to about `1.32` bits with relative weight MSE about `0.93`
+  - conclusion:
+    - forcing one shared scalar across the whole QKV triplet was not kept
+- Implemented the accepted adaptive-mixing repair:
+  - initial QKV calibration at `(epsilon_qr, epsilon_aw) = (0, 0)`
+  - reuse the step-1 calibrated per-matrix Q/K/V scales during the coordinate search
+  - keep the existing final recalibration pass after selecting `(epsilon_qr*, epsilon_aw*)`
+  - remove repeated binary searches from the candidate loop
+- Wrote the runtime-analysis note:
+  - `outputs/reports/adaptive_mixing_runtime_optimization.md`
+  - measured runtime reduction on the repaired path:
+    - layer 0 adaptive-mixing search: about `10.1x` faster than the old full-model adaptive-mixing run
+    - layer 1 adaptive-mixing search: about `5.7x` faster
+- Completed a repaired two-layer validation run:
+  - config: `configs/quant/watersic_llama32_1b_prefix2_reftrue_rescaler_mixing_repaircheck.yaml`
+  - log: `outputs/logs/run_llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2_20260315_010200.log`
+  - reports:
+    - `archive/reports/milestones/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.json`
+    - `archive/reports/milestones/llama32_1b_prefix2_3p0bit_reftrue_rescaler_mixing_repaircheck_v2.md`
+  - result:
+    - achieved effective bits: `2.9862`
+    - entropy bits: `2.9743`
+    - Huffman bits: `3.0262`
+    - baseline smoke-8 PPL: `8.9880`
+    - quantized smoke-8 PPL: `9.5600`
+    - total runtime: `3441.95s`
+    - peak memory: `18.65 GiB`
+  - repaired-path sanity:
+    - no new NaN/Inf
+    - no Q/K blow-up
+    - layer 0 and layer 1 QKV rates/magnitudes stayed in the same regime as the previously stable path
+- Started the repaired full-model run on a pinned idle GPU:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_20260315_015946.log`
+  - launch mode:
+    - `CUDA_VISIBLE_DEVICES=4`
+    - `reference_stats: true`
+    - fixed residual correction enabled
+    - staged same-layer stat refresh enabled
+    - rescalers enabled
+    - repaired adaptive-mixing search enabled
+- Intermediate live status before the repaired full-model run completed:
+  - layer 0 completed
+  - layer 1 completed
+  - layer 2 completed
+  - layer 3 completed
+  - layer 4 completed
+  - layer 5 adaptive-mixing search selected:
+    - `epsilon_qr = 0.516348`
+    - `epsilon_aw = 0.837561`
+    - timestamp: `2026-03-15 04:54:34`
+  - no numerical instability observed so far
+- Completed the repaired full-model run:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_mixing_repaired.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_20260315_015946.log`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired.md`
+  - artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired/`
+- Repaired full-model result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - repaired adaptive mixing enabled
+  - calibration chunks: `8`
+  - target global bitwidth: `3.0000`
+  - achieved effective bitwidth: `2.9984`
+  - entropy bitwidth: `2.9865`
+  - Huffman bitwidth: `3.0368`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `16.2796`
+  - quantization runtime: `30142.43s`
+  - total runtime: `30248.17s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Comparison against prior full-model points after the repaired run:
+  - no-rescaler:
+    - PPL: `16.8684`
+  - rescaler-only:
+    - PPL: `15.7029`
+  - old adaptive mixing:
+    - PPL: `16.6096`
+  - repaired adaptive mixing:
+    - PPL: `16.2796`
+  - direct deltas:
+    - repaired vs old adaptive mixing: `-0.3300`
+    - repaired vs rescaler-only: `+0.5767`
+    - repaired vs paper `10.57`: `+5.7096`
+- Distortion diagnosis after the repaired full-model run:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.3176`
+    - `down_proj`: `0.3051`
+    - `q_proj`: `0.0604`
+    - `k_proj`: `0.0886`
+    - `v_proj`: `0.0797`
+  - worst layers by relative weight MSE:
+    - `model.layers.11.self_attn.o_proj`: `0.4796`
+    - `model.layers.13.self_attn.o_proj`: `0.4597`
+    - `model.layers.12.self_attn.o_proj`: `0.4185`
+    - `model.layers.4.self_attn.o_proj`: `0.3997`
+    - `model.layers.0.self_attn.o_proj`: `0.3934`
+- Conclusion after the repaired run:
+  - the repaired adaptive-mixing path is numerically stable and substantially faster than the old adaptive-mixing path
+  - it partially fixes the old adaptive-mixing regression but does not beat the rescaler-only best point
+  - the current best completed `Llama-3.2-1B` point is still:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler`
+    - `15.7029` PPL at `2.9984` effective bits
+  - with repaired adaptive mixing no longer the dominant blocker, calibration size beyond `8` chunks is now the most likely next limiter on the best validated path
+  - Qwen3-8B remains intentionally deferred
+- Started the calibration-size sweep on the best validated rescaler-only path:
+  - stable anchor config cloned to:
+    - `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib8_anchor.yaml`
+    - `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml`
+    - `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml`
+  - safe runtime change:
+    - cached repo-local WikiText-2 token blocks under `outputs/stats/wikitext2_cache/`
+    - commit: `6173f21`
+    - test: `tests/test_wikitext2.py`
+- Anchor handling for the sweep:
+  - the completed `8`-chunk rescaler-only run remains the anchor:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler`
+    - effective bits: `2.9984`
+    - PPL: `15.7029`
+  - a redundant `8`-chunk rerun was started with the cached loader:
+    - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib8_anchor_20260315_133717.log`
+  - the rerun matched the expected early layer-0 and layer-1 rates and errors, then was stopped to free resources for the new `16`-chunk point
+- Active `16`-chunk sweep run:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib16_20260315_133857.log`
+  - current status at this update:
+    - layer `0` completed in `2232.22s`
+    - layer `1` remains in progress
+    - numerically stable so far
+    - no NaN/Inf, failed Cholesky, or residual-path blow-up observed
+- Current partial `16`-chunk evidence vs completed `8`-chunk anchor:
+  - layer `0`:
+    - `q_proj`: `0.1541 -> 0.0965`
+    - `k_proj`: `0.2057 -> 0.1285`
+    - `v_proj`: `0.2044 -> 0.1278`
+    - `o_proj`: `0.3936 -> 0.3108`
+    - `gate_proj`: `0.0598 -> 0.0476`
+    - `up_proj`: `0.0586 -> 0.0467`
+    - `down_proj`: `0.3635 -> 0.1634`
+  - layer `1`:
+    - `q_proj`: `0.0690 -> 0.0619`
+    - `k_proj`: `0.1097 -> 0.0980`
+    - `v_proj`: `0.0983 -> 0.0877`
+    - `o_proj`: `0.2754 -> 0.2080`
+- `32`-chunk handling:
+  - a `32`-chunk launch was briefly attempted on a third GPU
+  - it was stopped immediately to avoid resource contention before the `16`-chunk point is complete
+- Current honest conclusion from the sweep:
+  - there is not yet a new completed full-model PPL beyond the `8`-chunk anchor
+  - early local evidence strongly suggests calibration helps the dominant residual-path layers on the stable path
+  - the next blocking resource is wall-clock runtime, not a new numerical failure
+- Completed the `16`-chunk rescaler-only full-model run:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib16.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib16_20260315_133857.log`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_calib16.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_calib16.md`
+  - artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_calib16/`
+- Finished `16`-chunk result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - adaptive mixing disabled
+  - calibration chunks: `16`
+  - target global bitwidth: `3.0000`
+  - achieved effective bitwidth: `2.9984`
+  - entropy bitwidth: `2.9865`
+  - Huffman bitwidth: `3.0371`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `12.4574`
+  - quantization runtime: `22405.30s`
+  - total runtime: `22502.96s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Direct comparison against the previous best completed point:
+  - prior best:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler`
+    - calibration chunks: `8`
+    - PPL: `15.7029`
+  - new best:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+    - calibration chunks: `16`
+    - PPL: `12.4574`
+  - direct delta:
+    - `-3.2456` PPL
+  - paper gap:
+    - `8` chunks: `+5.1329`
+    - `16` chunks: `+1.8874`
+- Distortion diagnosis after the completed `16`-chunk run:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.2382`
+    - `down_proj`: `0.1709`
+    - `q_proj`: `0.0603`
+    - `k_proj`: `0.0854`
+    - `v_proj`: `0.0756`
+  - dominant worst layers remain `o_proj`, but with much lower magnitude:
+    - `model.layers.13.self_attn.o_proj`: `0.3427`
+    - `model.layers.11.self_attn.o_proj`: `0.3223`
+    - `model.layers.0.self_attn.o_proj`: `0.3108`
+    - `model.layers.12.self_attn.o_proj`: `0.3035`
+    - `model.layers.4.self_attn.o_proj`: `0.2935`
+  - key improvement versus the `8`-chunk rescaler-only point:
+    - `o_proj` mean relative MSE: `0.3170 -> 0.2382`
+    - `down_proj` mean relative MSE: `0.3023 -> 0.1709`
+- Updated conclusion after the completed `16`-chunk point:
+  - increasing calibration from `8` to `16` chunks materially improves the current best validated path
+  - calibration now looks like the strongest remaining limiter on the stable rescaler-only full-model path
+  - adaptive mixing remains implemented and stable, but it is no longer the highest-signal next knob
+  - the current best completed `Llama-3.2-1B` point is now:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler_calib16`
+    - `12.4574` PPL at `2.9984` effective bits
+  - the next recommended experiment is the `32`-chunk rescaler-only run on the same validated path
+  - Qwen3-8B remains intentionally deferred
+- Before launching the `32`-chunk mainline run, corrected the stale copied config so it matches the validated path exactly:
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml`
+  - set:
+    - `use_adaptive_mixing: false`
+    - `epsilon_qr: 0.0`
+    - `epsilon_aw: 0.0`
+  - this was a correctness alignment of the config, not a new algorithmic change
+- Completed the `32`-chunk rescaler-only full-model run:
+  - run: `llama32_1b_full_3p0bit_reftrue_rescaler_calib32`
+  - config: `configs/quant/watersic_llama32_1b_full_reftrue_rescaler_calib32.yaml`
+  - log: `outputs/logs/run_llama32_1b_full_3p0bit_reftrue_rescaler_calib32_20260315_205647.log`
+  - reports:
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_calib32.json`
+    - `outputs/reports/llama32_1b_full_3p0bit_reftrue_rescaler_calib32.md`
+  - artifact:
+    - `outputs/quantized/llama32_1b_full_3p0bit_reftrue_rescaler_calib32/`
+- Finished `32`-chunk result:
+  - `reference_stats: true`
+  - fixed residual correction enabled
+  - staged same-layer stat refresh enabled
+  - diagonal rescalers enabled
+  - adaptive mixing disabled
+  - calibration chunks: `32`
+  - target global bitwidth: `3.0000`
+  - achieved effective bitwidth: `2.9984`
+  - entropy bitwidth: `2.9865`
+  - Huffman bitwidth: `3.0373`
+  - side-information overhead: `0.0119`
+  - baseline WikiText-2 PPL: `9.7041`
+  - quantized WikiText-2 PPL: `11.7806`
+  - quantization runtime: `23119.82s`
+  - total runtime: `23211.72s`
+  - peak GPU memory: `18.65 GiB`
+  - quantization anomalies: none
+- Direct comparison across the completed mainline calibration sweep:
+  - `8` chunks:
+    - PPL: `15.7029`
+    - paper gap: `+5.1329`
+  - `16` chunks:
+    - PPL: `12.4574`
+    - paper gap: `+1.8874`
+  - `32` chunks:
+    - PPL: `11.7806`
+    - paper gap: `+1.2106`
+  - direct delta:
+    - `16 -> 32`: `-0.6768` PPL
+- Distortion diagnosis after the completed `32`-chunk run:
+  - mean relative weight MSE by kind:
+    - `o_proj`: `0.2025`
+    - `down_proj`: `0.1292`
+    - `q_proj`: `0.0770`
+    - `k_proj`: `0.1051`
+    - `v_proj`: `0.0908`
+  - dominant worst layers remain `o_proj`:
+    - `model.layers.13.self_attn.o_proj`: `0.2863`
+    - `model.layers.0.self_attn.o_proj`: `0.2650`
+    - `model.layers.11.self_attn.o_proj`: `0.2556`
+    - `model.layers.4.self_attn.o_proj`: `0.2540`
+    - `model.layers.12.self_attn.o_proj`: `0.2503`
+  - key improvement versus the `16`-chunk rescaler-only point:
+    - `o_proj` mean relative MSE: `0.2382 -> 0.2025`
+    - `down_proj` mean relative MSE: `0.1709 -> 0.1292`
+    - quantized PPL: `12.4574 -> 11.7806`
+- Updated conclusion after the completed `32`-chunk point:
+  - increasing calibration from `16` to `32` chunks still materially improves the validated path, though with smaller gains than `8 -> 16`
+  - calibration still appears to be the main remaining limiter on the stable rescaler-only path
+  - the current best completed `Llama-3.2-1B` point is now:
+    - `llama32_1b_full_3p0bit_reftrue_rescaler_calib32`
+    - `11.7806` PPL at `2.9984` effective bits
+  - the next recommended experiment is to increase calibration further on the same mainline path
+  - Qwen3-8B remains intentionally deferred
+
+## 2026-03-16
+
+- Did not launch a `64`-chunk or paper-scale run in this round.
+- Measured the current paper-scale calibration size directly with the repo loader and tokenizer path:
+  - full WikiText-2 train split
+  - concatenated into one token stream
+  - non-overlapping `2048`-token chunks
+  - current exact chunk count: `1188`
+  - paper text gives `≈1189` for `Llama-3.2-1B`
+- Built an evidence-based paper-scale runtime estimate from completed run logs and the repaired adaptive-mixing audit:
+  - rescaler-only mainline path: about `40.5h`
+  - repaired adaptive-mixing full-model path: about `66.7h`
+  - estimate saved to `outputs/reports/full_llama32_1b_paperscale_runtime_estimate.md`
+- Added Huffman shortest/longest symbol-length reporting to the live pipeline:
+  - canonical Huffman utility
+  - bitrate metrics
+  - run-report schema
+  - markdown rendering
+- Added tests for:
+  - empty-symbol Huffman edge case
+  - single-symbol Huffman edge case
+  - shortest/longest code-length propagation into bitrate metrics
+- Backfilled the existing completed full-model report bundles with the new Huffman fields as `unavailable` where exact recovery is impossible from historical artifacts.
+  - reason:
+    - earlier artifacts did not serialize the integer Huffman symbols
+    - exact shortest/longest code lengths therefore cannot be reconstructed without rerunning quantization
+- Updated:
+  - `outputs/reports/full_llama32_1b_calibration_sweep_report.md`
+  - `outputs/reports/full_llama32_1b_quality_recovery_comparison.md`
+  - `docs/known_issues.md`
+- Ran a short A6000 batch-size feasibility probe without launching any new long quantization experiment.
+  - collection probe:
+    - real `collect_layer_statistics()` path
+    - layer `0` QKV stage
+    - both model and reference model resident on GPU
+    - `8` calibration chunks
+  - adaptive probe:
+    - real `_collect_module_inputs()` / `_module_input_relative_mse()` path
+    - `model.layers.15.self_attn.o_proj`
+    - same `8` calibration chunks
+  - eval probe:
+    - first `8` WikiText-2 test chunks
+- Probe conclusion on the local A6000:
+  - `batch_size=2` is the largest safe batch size for the real reference-stat collection path
+  - `batch_size=4` and `8` OOM on collection
+  - adaptive candidate forward fits up to `8`, but throughput only improves by about `4.8%`
+  - evaluation throughput changes are negligible
+- Updated paper-scale runtime estimate from the probe:
+  - rescaler-only mainline at `batch_size=2`: about `37.5h`
+  - repaired adaptive mixing at `batch_size=2`: about `63.7h`
+  - even with a hypothetical split batch size (`collection=2`, `adaptive objective=8`), adaptive mixing would still be about `62.7h`
+- Saved:
+  - `outputs/reports/full_llama32_1b_batchsize_runtime_estimate_probe.json`
+  - `outputs/reports/full_llama32_1b_batchsize_runtime_estimate.md`

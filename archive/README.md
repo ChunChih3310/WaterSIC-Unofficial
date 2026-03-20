@@ -10,6 +10,8 @@ Contents are grouped conservatively:
   - superseded smoke and intermediate milestone reports
 - `archive/reports/launch_prep/`
   - pre-launch planning notes that were superseded by completed runs
+- `archive/docs/`
+  - detailed historical versions of repo-facing docs that were later simplified for GitHub readability
 - `archive/logs/launchers/`
   - redundant launcher logs and stdout captures
 - `archive/logs/interrupted_runs/`
