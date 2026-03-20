@@ -4,20 +4,29 @@
 
 1. The best completed full-model `Llama-3.2-1B` quantized artifact remains the paper-scale repaired adaptive-mixing point. Its original test-split report is `10.6031` PPL at `2.9984` effective bits, but the matched WikiText-2 validation rerun on that same artifact is `10.9310`, an absolute gap of `+0.3610` versus the paper’s `10.57`.
 2. The main split-mismatch caveat is now removed. The remaining `Llama-3.2-1B` difference is a direct validation-to-validation gap, not an eval-split artifact.
-3. Repaired adaptive mixing is now clearly beneficial when given sufficient calibration, but the strictly paper-comparable validation result is no longer “nearly exact”; it is still reasonably close, but meaningfully above the paper.
-4. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` validation-gap diagnosis is wrapped up cleanly.
-5. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
-6. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
-7. Paper-scale calibration on the current A6000 setup is expensive even on the stable mainline path:
+3. Final paper audit now classifies the repo state for `Llama-3.2-1B` as a near-reproduction rather than an exact paper match:
+   - the main WaterSIC algorithmic path matches closely
+   - the remaining validation gap is real
+   - the remaining caveats are mostly revision/chunk-realization details rather than missing core features
+4. Repaired adaptive mixing is now clearly beneficial when given sufficient calibration, but the strictly paper-comparable validation result is no longer “nearly exact”; it is still reasonably close, but meaningfully above the paper.
+5. The final worst-layer diagnosis shows that the remaining distortion is still concentrated mainly in residual-path projections:
+   - `self_attn.o_proj` remains the hardest family by mean relative weight MSE
+   - `mlp.down_proj` remains the second-hardest family
+   - the top paper-scale hard cases are now earlier residual-path layers, not the late-layer cluster that dominated the `32`-chunk rescaler-only run
+6. Qwen3-8B remains intentionally deferred until the `Llama-3.2-1B` validation-gap diagnosis is wrapped up cleanly.
+7. The loader inefficiency is partially addressed: tokenized WikiText-2 blocks are now cached in-repo. The first uncached build still emits the long-sequence tokenizer warning once, but later runs reuse the cached blocks.
+8. Historical completed run artifacts do not serialize the integer Huffman symbols, so exact shortest/longest Huffman code lengths cannot be backfilled for those runs. The updated report fields are therefore shown as `unavailable` on older completed bundles unless a run is repeated.
+9. Paper-scale calibration on the current A6000 setup is expensive even on the stable mainline path:
    - batch-1 rescaler-only mainline estimate: about `40.5h`
    - batch-2 rescaler-only mainline estimate: about `37.5h`
    - batch-1 repaired adaptive-mixing estimate: about `66.7h`
    - batch-2 repaired adaptive-mixing estimate: about `63.7h`
    - the adaptive-mixing paper-scale path is therefore currently too expensive for normal iterative debugging
-8. Short A6000 probing now shows that the real reference-stat collection path, not the adaptive objective forward path, is the batch-size limiter:
+10. Short A6000 probing now shows that the real reference-stat collection path, not the adaptive objective forward path, is the batch-size limiter:
    - `batch_size=2` fits on collection
    - `batch_size=4` and `8` OOM on collection
    - adaptive objective forward fits through `batch_size=8`, but throughput gains are minor
+11. A cleanup inventory now exists at `outputs/reports/debug_artifact_cleanup_inventory.md`, but no cleanup has been performed yet. Any deletion/archive pass should follow that inventory conservatively rather than deleting historical artifacts ad hoc.
 
 ## Implementation Gaps
 
@@ -34,6 +43,9 @@
    - the repo uses the Hugging Face `main` revision for both model and tokenizer, while the paper does not pin an exact public revision in the extracted text
    - the repo’s paper-scale calibration budget is `1188` non-overlapping `2048`-token chunks from the current tokenizer pipeline; this is consistent with the stated full-train-split calibration protocol, but the paper does not publish an exact chunk count in the extracted text
    - `reference_stats_effective_count` is `109 / 112` because the first-layer QKV block has no prior quantized predecessor; this is expected rather than a bug
+11. The new final paper audit and worst-layer diagnosis confirm that the remaining `Llama-3.2-1B` problem is no longer “missing paper features.” It is now:
+   - a small but real validation-gap problem
+   - plus residual-path distortion concentration in `o_proj` / `down_proj`
 
 ## Already Validated
 

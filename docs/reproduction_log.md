@@ -2,6 +2,39 @@
 
 ## 2026-03-20
 
+- Produced a final paper audit for the completed `Llama-3.2-1B ~3.0-bit` paper-scale result:
+  - report: `outputs/reports/final_paper_audit.md`
+  - conclusion:
+    - the repo now matches the paper closely on the main WaterSIC algorithmic path and search settings
+    - the strict paper-comparable number is the validation rerun, not the earlier test-split result
+    - the most honest classification is `near-reproduction`, not `exact paper match`
+  - remaining caveats from the audit:
+    - matched validation PPL is still `10.9310` versus the paper’s `10.57`
+    - the repo uses HF `main` model/tokenizer revisions rather than a paper-pinned public revision
+    - the exact tokenizer/BOS/chunk-count realization is not proven identical, even though the method matches the paper protocol
+- Produced a final worst-layer diagnosis for the best current path:
+  - report: `outputs/reports/final_worst_layer_diagnosis.md`
+  - conclusion:
+    - by relative weight MSE, the remaining distortion is still concentrated in residual-path projections
+    - the hardest layers in the final paper-scale run are:
+      - `model.layers.0.self_attn.o_proj`
+      - `model.layers.2.self_attn.o_proj`
+      - `model.layers.1.mlp.down_proj`
+      - `model.layers.4.self_attn.o_proj`
+      - `model.layers.5.self_attn.o_proj`
+    - by the saved `weighted_error` proxy, the largest remaining activation/input-pressure terms still cluster in `k_proj`
+    - the most plausible remaining limiter is residual-path sensitivity, not a missing major algorithmic block
+- Prepared a conservative cleanup inventory:
+  - report: `outputs/reports/debug_artifact_cleanup_inventory.md`
+  - scope:
+    - obsolete debug-only reports
+    - interrupted or redundant launcher/run logs
+    - superseded smoke/intermediate artifacts
+    - stale probe outputs and debug configs/scripts
+  - important:
+    - no files were deleted
+    - no files were moved
+    - no cleanup was performed yet
 - Completed the full paper-scale repaired adaptive-mixing `Llama-3.2-1B` run:
   - run: `llama32_1b_full_3p0bit_reftrue_rescaler_mixing_repaired_paperscale`
   - model config: `configs/paper_comparable/models/llama32_1b.yaml`
