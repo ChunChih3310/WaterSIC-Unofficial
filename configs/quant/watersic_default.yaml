@@ -1,0 +1,34 @@
+run_name: watersic_default
+target_global_bitwidth: 3.0
+reference_stats: false
+reference_device: cpu
+max_layers:
+max_modules:
+device:
+  override:
+  min_free_memory_gib: 24.0
+  max_used_memory_gib: 2.0
+  allow_busy_fallback: false
+checkpoint:
+  enabled: false
+  dir: outputs/checkpoints
+  resume: auto
+  strict_git_commit: true
+  keep_after_completion: true
+  save_collection_every_batches: 32
+calibration:
+  split: train
+  sequence_length: 2048
+  num_sequences: 32
+  batch_size: 1
+layer:
+  damping: 1.0e-4
+  binary_search_iterations: 30
+  row_sample_fraction: 0.1
+  golden_section_iterations: 15
+  dead_feature_tau: 1.0e-3
+  epsilon_qr: 0.0
+  epsilon_aw: 0.0
+  max_rescaler_iters: 0
+  rescaler_ridge: 1.0e-6
+  seed: 0

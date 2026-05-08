@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite both the WaterSIC paper and this unofficial implementation."
+title: "WaterSIC Unofficial Reproduction"
+type: software
+authors:
+  - name: "ChunChih3310"
+version: "0.1.0"
+license: "MIT"
+repository-code: "https://github.com/ChunChih3310/WaterSIC-Unofficial"
+url: "https://github.com/ChunChih3310/WaterSIC-Unofficial"
+abstract: "An unofficial MIT-licensed software implementation and reproduction harness for the WaterSIC paper. This repository is not affiliated with or endorsed by the paper authors."
+
+preferred-citation:
+  type: article
+  title: "WaterSIC: information-theoretically (near) optimal linear layer quantization"
+  authors:
+    - family-names: "Lifar"
+      given-names: "Egor"
+    - family-names: "Savkin"
+      given-names: "Semyon"
+    - family-names: "Ordentlich"
+      given-names: "Or"
+    - family-names: "Polyanskiy"
+      given-names: "Yury"
+  year: 2026
+  identifiers:
+    - type: arxiv
+      value: "2603.04956"

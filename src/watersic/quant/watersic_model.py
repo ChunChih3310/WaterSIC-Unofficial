@@ -1,0 +1,645 @@
+from __future__ import annotations
+
+import gc
+import math
+import time
+from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import torch
+
+from watersic.models.hooks import LayerLocalStatsCollector, _LayerCaptureComplete
+from watersic.models.registry import LinearModuleSpec, group_specs_by_layer, iter_linear_module_specs
+from watersic.quant.checkpoint import CheckpointConfig, CheckpointManager, StagePlanEntry
+from watersic.quant.serialization import save_quantized_artifact
+from watersic.report.render_markdown import render_run_report_markdown
+from watersic.report.schema import LayerReport, RunReport
+from watersic.stats.attention_weighting import is_attention_weighted_target, token_importance_from_attention, weighted_second_moment
+from watersic.stats.covariance import SecondMomentAccumulator
+from watersic.utils.io import save_json
+from watersic.utils.path_guard import ensure_parent_dir, repo_path
+
+from .attention_mixing import optimize_attention_stage_mixing
+from .watersic_layer import LayerQuantizationConfig, LayerQuantizationResult, LayerStatistics, quantize_linear_layer
+
+
+@dataclass(frozen=True)
+class SequentialQuantizationConfig:
+    run_name: str
+    target_global_bitwidth: float
+    calibration_batch_size: int = 1
+    reference_stats: bool = False
+    max_layers: int | None = None
+    max_modules: int | None = None
+    layer_config: LayerQuantizationConfig = LayerQuantizationConfig(target_rate=4.0)
+    checkpoint: CheckpointConfig = CheckpointConfig()
+
+
+LAYER_STAGE_KIND_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("q_proj", "k_proj", "v_proj"),
+    ("o_proj",),
+    ("gate_proj", "up_proj"),
+    ("down_proj",),
+)
+
+
+def _relative_weight_error(reference: torch.Tensor, candidate: torch.Tensor) -> tuple[float, float]:
+    ref = reference.to(torch.float64)
+    cand = candidate.to(torch.float64)
+    numerator = float((cand - ref).square().sum().item())
+    denominator = float(ref.square().sum().item())
+    return numerator, denominator
+
+
+def _kind_summary(layer_results: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for payload in layer_results.values():
+        grouped[str(payload["kind"])].append(payload)
+
+    summary: dict[str, dict[str, Any]] = {}
+    for kind, payloads in grouped.items():
+        mean_relative_mse = sum(float(item["relative_weight_mse"]) for item in payloads) / max(len(payloads), 1)
+        max_relative_mse = max(float(item["relative_weight_mse"]) for item in payloads)
+        mean_entropy = sum(float(item["entropy_rate"]) for item in payloads) / max(len(payloads), 1)
+        mean_huffman = sum(float(item["huffman_rate"]) for item in payloads) / max(len(payloads), 1)
+        shortest_huffman = min(int(item["huffman_shortest_symbol_length_bits"]) for item in payloads)
+        longest_huffman = max(int(item["huffman_longest_symbol_length_bits"]) for item in payloads)
+        summary[kind] = {
+            "count": len(payloads),
+            "mean_relative_weight_mse": mean_relative_mse,
+            "max_relative_weight_mse": max_relative_mse,
+            "mean_entropy_rate": mean_entropy,
+            "mean_huffman_rate": mean_huffman,
+            "huffman_shortest_symbol_length_bits": shortest_huffman,
+            "huffman_longest_symbol_length_bits": longest_huffman,
+        }
+    return summary
+
+
+def _layer_stage_specs(layer_specs: list[LinearModuleSpec]) -> list[list[LinearModuleSpec]]:
+    by_kind = {spec.kind: spec for spec in layer_specs}
+    stages: list[list[LinearModuleSpec]] = []
+    consumed: set[str] = set()
+    for kind_group in LAYER_STAGE_KIND_GROUPS:
+        stage = [by_kind[kind] for kind in kind_group if kind in by_kind]
+        if stage:
+            stages.append(stage)
+            consumed.update(spec.kind for spec in stage)
+    for spec in layer_specs:
+        if spec.kind not in consumed:
+            stages.append([spec])
+    return stages
+
+
+def _build_stage_plan(model, grouped: dict[int, list[LinearModuleSpec]], layer_indices: list[int]) -> dict[int, list[tuple[StagePlanEntry, list[LinearModuleSpec]]]]:
+    plan: dict[int, list[tuple[StagePlanEntry, list[LinearModuleSpec]]]] = {}
+    for layer_index in layer_indices:
+        stage_entries: list[tuple[StagePlanEntry, list[LinearModuleSpec]]] = []
+        for stage_index, stage_specs in enumerate(_layer_stage_specs(grouped[layer_index])):
+            stage_entries.append(
+                (
+                    StagePlanEntry(
+                        layer_index=layer_index,
+                        stage_index=stage_index,
+                        stage_kinds=tuple(spec.kind for spec in stage_specs),
+                        module_paths=tuple(spec.full_path for spec in stage_specs),
+                        module_num_weights={
+                            spec.full_path: int(model.get_submodule(spec.full_path).weight.numel()) for spec in stage_specs
+                        },
+                    ),
+                    stage_specs,
+                )
+            )
+        plan[layer_index] = stage_entries
+    return plan
+
+
+def _layer_stats_template(spec: LinearModuleSpec, hidden_dim: int, input_dim: int) -> dict[str, SecondMomentAccumulator]:
+    template: dict[str, SecondMomentAccumulator] = {
+        "sigma_x": SecondMomentAccumulator(input_dim),
+        "sigma_x_hat": SecondMomentAccumulator(input_dim),
+        "sigma_x_x_hat": SecondMomentAccumulator(input_dim, input_dim),
+    }
+    if is_attention_weighted_target(spec.kind):
+        template["sigma_x_weighted"] = SecondMomentAccumulator(input_dim)
+        template["sigma_x_hat_weighted"] = SecondMomentAccumulator(input_dim)
+        template["sigma_x_x_hat_weighted"] = SecondMomentAccumulator(input_dim, input_dim)
+    if spec.kind in {"o_proj", "down_proj"}:
+        template["sigma_delta_x_hat"] = SecondMomentAccumulator(hidden_dim, input_dim)
+    return template
+
+
+def collect_layer_statistics(
+    model,
+    calibration_dataset,
+    layer_specs: list[LinearModuleSpec],
+    *,
+    device: torch.device,
+    logger,
+    calibration_batch_size: int,
+    reference_model=None,
+    reference_device: torch.device | None = None,
+    checkpoint_manager: CheckpointManager | None = None,
+    checkpoint_stage: StagePlanEntry | None = None,
+    checkpoint_every_batches: int = 0,
+) -> dict[str, LayerStatistics]:
+    reference_device = device if reference_model is not None and reference_device is None else reference_device
+
+    def _copy_batch(batch_cpu: torch.Tensor, target_device: torch.device) -> torch.Tensor:
+        copy_non_blocking = target_device.type == "cuda" and batch_cpu.device.type == "cpu" and batch_cpu.is_pinned()
+        return batch_cpu.to(target_device, non_blocking=copy_non_blocking)
+
+    def _capture_layer_stats(active_model, batch_on_device: torch.Tensor, *, active_device: torch.device):
+        with torch.inference_mode():
+            with LayerLocalStatsCollector(
+                active_model,
+                module_paths=module_paths,
+                layer_path=layer_path,
+                collect_layer_attention=collect_attentions,
+                attention_module_path=f"{layer_path}.self_attn" if collect_attentions else None,
+            ) as store:
+                try:
+                    active_model(input_ids=batch_on_device, use_cache=False, output_attentions=collect_attentions)
+                except _LayerCaptureComplete:
+                    pass
+                else:
+                    raise RuntimeError(f"Expected layer-local early stop while collecting statistics for {layer_path}")
+        if layer_path not in store.layer_inputs:
+            raise RuntimeError(f"Failed to capture layer inputs for {layer_path} on {active_device}")
+        return store
+
+    module_paths = [spec.full_path for spec in layer_specs]
+    layer_path = layer_specs[0].layer_path
+    hidden_dim = model.get_submodule(layer_path).input_layernorm.weight.numel()
+    accumulators: dict[str, dict[str, SecondMomentAccumulator]] = {}
+    for spec in layer_specs:
+        module = model.get_submodule(spec.full_path)
+        accumulators[spec.full_path] = _layer_stats_template(spec, hidden_dim=hidden_dim, input_dim=module.in_features)
+
+    resume_batch_index = 0
+    if checkpoint_manager is not None and checkpoint_stage is not None:
+        saved_state = checkpoint_manager.load_collection_state(checkpoint_stage)
+        if saved_state is not None:
+            accumulators, resume_batch_index = saved_state
+            logger.info(
+                "Resuming statistics collection for %s from calibration batch %d",
+                checkpoint_stage.stage_id,
+                resume_batch_index,
+            )
+
+    collect_attentions = any(is_attention_weighted_target(spec.kind) for spec in layer_specs)
+    uses_cuda = device.type == "cuda" or (reference_device is not None and reference_device.type == "cuda")
+    total_batches = math.ceil(len(calibration_dataset) / calibration_batch_size) if hasattr(calibration_dataset, "__len__") else None
+    for batch_index, batch in enumerate(calibration_dataset.batches(calibration_batch_size)):
+        if batch_index < resume_batch_index:
+            continue
+        batch_cpu = batch
+        q_batch = _copy_batch(batch_cpu, device)
+        q_store = _capture_layer_stats(model, q_batch, active_device=device)
+        q_layer_input = q_store.layer_inputs[layer_path]
+
+        ref_store = None
+        ref_layer_input = None
+        ref_attn = None
+        if reference_model is not None:
+            ref_batch = q_batch if reference_device == device else _copy_batch(batch_cpu, reference_device)
+            ref_store = _capture_layer_stats(reference_model, ref_batch, active_device=reference_device)
+            ref_layer_input = ref_store.layer_inputs[layer_path]
+            ref_attn = ref_store.layer_attentions.get(layer_path) if collect_attentions else None
+        q_attn = q_store.layer_attentions.get(layer_path) if collect_attentions else None
+        if collect_attentions and ref_attn is None and q_attn is None:
+            raise RuntimeError(f"Failed to capture attention probabilities for {layer_path}")
+        token_weights = token_importance_from_attention(ref_attn if ref_attn is not None else q_attn) if collect_attentions else None
+
+        for spec in layer_specs:
+            q_input = q_store.inputs[spec.full_path]
+            ref_input = q_input if ref_store is None else ref_store.inputs[spec.full_path]
+            acc = accumulators[spec.full_path]
+            acc["sigma_x"].update(ref_input)
+            acc["sigma_x_hat"].update(q_input)
+            acc["sigma_x_x_hat"].update(ref_input, q_input)
+            if "sigma_x_weighted" in acc and token_weights is not None:
+                acc["sigma_x_weighted"].update(ref_input, weights=token_weights)
+                acc["sigma_x_hat_weighted"].update(q_input, weights=token_weights)
+                acc["sigma_x_x_hat_weighted"].update(ref_input, q_input, weights=token_weights)
+            if "sigma_delta_x_hat" in acc and ref_layer_input is not None:
+                delta = ref_layer_input - q_layer_input
+                acc["sigma_delta_x_hat"].update(delta, q_input)
+
+        del q_store
+        del ref_store
+        del q_batch
+        del q_layer_input
+        del ref_layer_input
+        del ref_attn
+        del q_attn
+        del token_weights
+        logger.info("Collected calibration batch %d for layer %s", batch_index, layer_path)
+        if (
+            checkpoint_manager is not None
+            and checkpoint_stage is not None
+            and checkpoint_every_batches > 0
+            and (
+                (batch_index + 1) % checkpoint_every_batches == 0
+                or (total_batches is not None and batch_index + 1 == total_batches)
+            )
+        ):
+            checkpoint_manager.save_collection_state(
+                checkpoint_stage,
+                accumulators=accumulators,
+                next_batch_index=batch_index + 1,
+            )
+
+    gc.collect()
+    if uses_cuda and torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    finalized: dict[str, LayerStatistics] = {}
+    for spec in layer_specs:
+        acc = accumulators[spec.full_path]
+        sigma_delta = acc["sigma_delta_x_hat"].finalize() if "sigma_delta_x_hat" in acc else None
+        sigma_x_hat = acc["sigma_x_hat"].finalize()
+        finalized[spec.full_path] = LayerStatistics(
+            sigma_x=acc["sigma_x"].finalize(),
+            sigma_x_hat=sigma_x_hat,
+            sigma_x_x_hat=acc["sigma_x_x_hat"].finalize(),
+            sigma_x_weighted=acc["sigma_x_weighted"].finalize() if "sigma_x_weighted" in acc else None,
+            sigma_x_hat_weighted=acc["sigma_x_hat_weighted"].finalize() if "sigma_x_hat_weighted" in acc else None,
+            sigma_x_x_hat_weighted=acc["sigma_x_x_hat_weighted"].finalize() if "sigma_x_x_hat_weighted" in acc else None,
+            sigma_delta_x_hat=sigma_delta,
+            variances=torch.diag(sigma_x_hat),
+        )
+    if checkpoint_manager is not None and checkpoint_stage is not None:
+        checkpoint_manager.save_stage_stats(checkpoint_stage, finalized)
+    return finalized
+
+
+def quantize_model_sequential(
+    model,
+    tokenizer,
+    calibration_dataset,
+    *,
+    config: SequentialQuantizationConfig,
+    device: torch.device,
+    logger,
+    report_metadata: dict[str, Any],
+    model_config_snapshot: dict[str, Any],
+    quant_config_snapshot: dict[str, Any],
+    eval_config_snapshot: dict[str, Any],
+    reference_model=None,
+    reference_device: torch.device | None = None,
+) -> tuple[RunReport, Path]:
+    run_start = time.perf_counter()
+    specs = iter_linear_module_specs(model)
+    grouped = group_specs_by_layer(specs)
+    layer_indices = sorted(grouped)
+    if config.max_layers is not None:
+        layer_indices = layer_indices[: config.max_layers]
+
+    selected_specs = [spec for layer_idx in layer_indices for spec in grouped[layer_idx]]
+    if config.max_modules is not None:
+        selected_specs = selected_specs[: config.max_modules]
+        filtered_grouped: dict[int, list[LinearModuleSpec]] = defaultdict(list)
+        for spec in selected_specs:
+            filtered_grouped[spec.layer_index].append(spec)
+        grouped = filtered_grouped
+        layer_indices = sorted(grouped)
+
+    total_weights = sum(model.get_submodule(spec.full_path).weight.numel() for spec in selected_specs)
+    stage_plan_by_layer = _build_stage_plan(model, grouped, layer_indices)
+    stage_plan = [entry for layer_index in layer_indices for entry, _ in stage_plan_by_layer[layer_index]]
+    checkpoint_manager = CheckpointManager(
+        run_name=config.run_name,
+        config=config.checkpoint,
+        model_config=model_config_snapshot,
+        quant_config=quant_config_snapshot,
+        eval_config=eval_config_snapshot,
+        report_metadata=report_metadata,
+        total_weights=total_weights,
+        stage_plan=stage_plan,
+    )
+    checkpoint_manager.initialize_or_validate()
+    restored = checkpoint_manager.restore_committed_progress(model)
+    remaining_budget = restored.remaining_budget
+    remaining_weights = restored.remaining_weights
+    layer_reports: list[LayerReport] = list(restored.layer_reports)
+    layer_results: dict[str, dict[str, Any]] = dict(restored.layer_results)
+    quantization_anomalies: list[str] = list(restored.quantization_anomalies)
+    if restored.resumed:
+        logger.info(
+            "Resumed %s from %d committed stages; remaining budget %.4f over %d weights",
+            config.run_name,
+            restored.restored_stage_count,
+            remaining_budget,
+            remaining_weights,
+        )
+
+    def record_quantized_result(
+        spec: LinearModuleSpec,
+        original_weight: torch.Tensor,
+        result: LayerQuantizationResult,
+        layer_config: LayerQuantizationConfig,
+        stage_kinds: list[str],
+        stats: LayerStatistics,
+        *,
+        target_rate: float,
+        mixing_audit: dict[str, Any] | None,
+        stage_quantization: dict[str, Any] | None = None,
+    ) -> None:
+        nonlocal remaining_budget, remaining_weights
+        module = model.get_submodule(spec.full_path)
+        num_weights = module.weight.numel()
+        weight_num, weight_den = _relative_weight_error(original_weight, result.quantized_weight)
+        relative_weight_mse = weight_num / max(weight_den, 1e-12)
+        max_abs_weight_error = float((result.quantized_weight.to(torch.float64) - original_weight).abs().max().item())
+        reference_delta_norm = float((stats.sigma_x - stats.sigma_x_hat).to(torch.float64).norm().item())
+        reference_stats_effective = (
+            config.reference_stats
+            and layer_config.use_activation_drift
+            and stats.sigma_x_hat is not None
+            and reference_delta_norm > 1e-12
+        )
+        if not math.isfinite(relative_weight_mse) or not math.isfinite(max_abs_weight_error):
+            quantization_anomalies.append(f"{spec.full_path}: non-finite reconstruction metrics")
+        remaining_budget -= result.bitrate.final_effective_average_bitwidth * num_weights
+        remaining_weights -= num_weights
+        layer_reports.append(
+            LayerReport(
+                name=spec.full_path,
+                kind=spec.kind,
+                target_bitwidth=target_rate,
+                achieved_bitwidth=result.bitrate.final_effective_average_bitwidth,
+                raw_bitwidth=result.bitrate.raw_average_bitwidth,
+                entropy_bitwidth=result.bitrate.entropy_average_bitwidth,
+                huffman_bitwidth=result.bitrate.huffman_average_bitwidth,
+                huffman_shortest_symbol_length_bits=result.bitrate.huffman_shortest_symbol_length_bits,
+                huffman_longest_symbol_length_bits=result.bitrate.huffman_longest_symbol_length_bits,
+                side_information_bitwidth=result.bitrate.side_information_average_bitwidth,
+                weighted_error=result.search.quantization.weighted_error,
+                applied_damping=result.applied_damping,
+            )
+        )
+        layer_results[spec.full_path] = {
+            "layer_index": spec.layer_index,
+            "kind": spec.kind,
+            "collection_stage_kinds": stage_kinds,
+            "target_rate": target_rate,
+            "achieved_rate": result.bitrate.final_effective_average_bitwidth,
+            "raw_rate": result.bitrate.raw_average_bitwidth,
+            "entropy_rate": result.bitrate.entropy_average_bitwidth,
+            "huffman_rate": result.bitrate.huffman_average_bitwidth,
+            "huffman_shortest_symbol_length_bits": int(result.bitrate.huffman_shortest_symbol_length_bits),
+            "huffman_longest_symbol_length_bits": int(result.bitrate.huffman_longest_symbol_length_bits),
+            "side_information_rate": result.bitrate.side_information_average_bitwidth,
+            "selected_c": result.search.selected_c,
+            "reference_stats_requested": bool(config.reference_stats),
+            "reference_stats_enabled": bool(layer_config.use_activation_drift),
+            "reference_stats_effective": bool(reference_stats_effective),
+            "reference_stats_delta_norm": reference_delta_norm,
+            "relative_weight_mse": relative_weight_mse,
+            "max_abs_weight_error": max_abs_weight_error,
+            "spacings": [float(x) for x in result.spacings.tolist()],
+            "lmmse_gammas": [float(x) for x in result.lmmse_gammas.tolist()],
+            "alpha_min": float(result.diagnostics["alpha_min"]),
+            "alpha_max": float(result.diagnostics["alpha_max"]),
+            "gamma_min": float(result.diagnostics["gamma_min"]),
+            "gamma_max": float(result.diagnostics["gamma_max"]),
+            "row_scale_shape": list(result.row_scale.shape),
+            "column_scale_shape": list(result.column_scale.shape),
+            "num_dead_features": int((~result.dead_features.keep_mask).sum().item()),
+            "dead_feature_threshold": float(result.dead_features.threshold),
+            "dead_feature_mask_size": int(result.dead_features.keep_mask.numel()),
+            "dead_feature_kept_dim": int(result.dead_features.keep_indices.numel()),
+            "dead_feature_pruned_indices": [int(x) for x in result.dead_features.dead_indices.tolist()],
+            "weighted_error": result.search.quantization.weighted_error,
+            "compensation_applied": bool(result.compensation_matrix is not None),
+            "damping_configured": float(layer_config.damping),
+            "damping_applied": float(result.applied_damping),
+            "epsilon_qr": float(layer_config.epsilon_qr),
+            "epsilon_aw": float(layer_config.epsilon_aw),
+            "adaptive_mixing_optimized": bool(mixing_audit is not None and mixing_audit.get("enabled", False)),
+            "adaptive_mixing_audit": mixing_audit,
+            "sigma_delta_x_hat_fro_norm": float(torch.linalg.matrix_norm(stats.sigma_delta_x_hat, ord="fro").item())
+            if stats.sigma_delta_x_hat is not None
+            else 0.0,
+            "diagnostics": result.diagnostics,
+        }
+        if stage_quantization is not None:
+            layer_results[spec.full_path]["stage_quantization"] = stage_quantization
+        logger.info(
+            "Quantized %s with target %.4f and achieved %.4f (relMSE=%.6e, ref_delta=%.6e)",
+            spec.full_path,
+            target_rate,
+            result.bitrate.final_effective_average_bitwidth,
+            relative_weight_mse,
+            reference_delta_norm,
+        )
+
+    for layer_index in layer_indices:
+        layer_start = time.perf_counter()
+        for stage_entry, stage_specs in stage_plan_by_layer[layer_index]:
+            if stage_entry.stage_id in restored.committed_stage_ids:
+                logger.info("Skipping committed checkpoint stage %s", stage_entry.stage_id)
+                continue
+            stage_kinds = [spec.kind for spec in stage_specs]
+            stage_pre_remaining_budget = remaining_budget
+            stage_pre_remaining_weights = remaining_weights
+            stats_map = checkpoint_manager.load_stage_stats(stage_entry)
+            if stats_map is not None:
+                logger.info("Loaded finalized checkpoint statistics for %s", stage_entry.stage_id)
+            else:
+                logger.info("Collecting statistics for layer %d stage %s", layer_index, stage_kinds)
+                stats_map = collect_layer_statistics(
+                    model,
+                    calibration_dataset,
+                    stage_specs,
+                    device=device,
+                    logger=logger,
+                    calibration_batch_size=config.calibration_batch_size,
+                    reference_model=reference_model,
+                    reference_device=reference_device,
+                    checkpoint_manager=checkpoint_manager if checkpoint_manager.enabled else None,
+                    checkpoint_stage=stage_entry if checkpoint_manager.enabled else None,
+                    checkpoint_every_batches=config.checkpoint.save_collection_every_batches if checkpoint_manager.enabled else 0,
+                )
+            stage_remaining_budget = remaining_budget
+            stage_remaining_weights = remaining_weights
+            stage_layer_config = config.layer_config
+            mixing_audit: dict[str, Any] | None = None
+            if {spec.kind for spec in stage_specs} == {"q_proj", "k_proj", "v_proj"} and len(stage_specs) == 3:
+                by_kind = {spec.kind: spec for spec in layer_specs}
+                o_proj_spec = by_kind.get("o_proj")
+                if o_proj_spec is not None:
+                    best_qr, best_aw, mixing_audit = optimize_attention_stage_mixing(
+                        model,
+                        reference_model,
+                        stage_specs,
+                        o_proj_spec,
+                        stats_map,
+                        calibration_dataset,
+                        config.layer_config,
+                        stage_remaining_budget=stage_remaining_budget,
+                        stage_remaining_weights=stage_remaining_weights,
+                        calibration_batch_size=config.calibration_batch_size,
+                        device=device,
+                        reference_device=reference_device if reference_device is not None else device,
+                        logger=logger,
+                    )
+                    stage_layer_config = LayerQuantizationConfig(
+                        target_rate=config.layer_config.target_rate,
+                        damping=config.layer_config.damping,
+                        binary_search_iterations=config.layer_config.binary_search_iterations,
+                        row_sample_fraction=config.layer_config.row_sample_fraction,
+                        golden_section_iterations=config.layer_config.golden_section_iterations,
+                        dead_feature_tau=config.layer_config.dead_feature_tau,
+                        epsilon_qr=best_qr,
+                        epsilon_aw=best_aw,
+                        max_rescaler_iters=config.layer_config.max_rescaler_iters,
+                        rescaler_ridge=config.layer_config.rescaler_ridge,
+                        seed=config.layer_config.seed,
+                        use_lmmse=config.layer_config.use_lmmse,
+                        use_activation_drift=config.layer_config.use_activation_drift,
+                        use_residual_correction=config.layer_config.use_residual_correction,
+                        residual_scale=config.layer_config.residual_scale,
+                        use_attention_weighting=config.layer_config.use_attention_weighting,
+                        use_adaptive_mixing=config.layer_config.use_adaptive_mixing,
+                        optimize_adaptive_mixing=config.layer_config.optimize_adaptive_mixing,
+                        spacing_strategy=config.layer_config.spacing_strategy,
+                    )
+            stage_report_start = len(layer_reports)
+            stage_anomaly_start = len(quantization_anomalies)
+            for spec in stage_specs:
+                module = model.get_submodule(spec.full_path)
+                original_weight = module.weight.detach().cpu().to(torch.float64)
+                target_rate = remaining_budget / max(remaining_weights, 1)
+                layer_config = LayerQuantizationConfig(
+                    target_rate=target_rate,
+                    damping=stage_layer_config.damping,
+                    binary_search_iterations=stage_layer_config.binary_search_iterations,
+                    row_sample_fraction=stage_layer_config.row_sample_fraction,
+                    golden_section_iterations=stage_layer_config.golden_section_iterations,
+                    dead_feature_tau=stage_layer_config.dead_feature_tau,
+                    epsilon_qr=stage_layer_config.epsilon_qr,
+                    epsilon_aw=stage_layer_config.epsilon_aw,
+                    max_rescaler_iters=stage_layer_config.max_rescaler_iters,
+                    rescaler_ridge=stage_layer_config.rescaler_ridge,
+                    seed=stage_layer_config.seed,
+                    use_lmmse=stage_layer_config.use_lmmse,
+                    use_activation_drift=stage_layer_config.use_activation_drift,
+                    use_residual_correction=stage_layer_config.use_residual_correction,
+                    residual_scale=stage_layer_config.residual_scale,
+                    use_attention_weighting=stage_layer_config.use_attention_weighting,
+                    use_adaptive_mixing=stage_layer_config.use_adaptive_mixing,
+                    optimize_adaptive_mixing=stage_layer_config.optimize_adaptive_mixing,
+                    spacing_strategy=stage_layer_config.spacing_strategy,
+                )
+                result = quantize_linear_layer(
+                    original_weight,
+                    stats_map[spec.full_path],
+                    layer_config,
+                    kind=spec.kind,
+                )
+                module.weight.data.copy_(result.quantized_weight.to(module.weight.device, dtype=module.weight.dtype))
+                record_quantized_result(
+                    spec,
+                    original_weight,
+                    result,
+                    layer_config,
+                    stage_kinds,
+                    stats_map[spec.full_path],
+                    target_rate=target_rate,
+                    mixing_audit=mixing_audit,
+                )
+            stage_layer_reports = layer_reports[stage_report_start:]
+            stage_layer_results = {spec.full_path: layer_results[spec.full_path] for spec in stage_specs}
+            checkpoint_manager.save_committed_stage(
+                stage_entry,
+                model=model,
+                stage_layer_reports=stage_layer_reports,
+                stage_layer_results=stage_layer_results,
+                pre_stage_remaining_budget=stage_pre_remaining_budget,
+                post_stage_remaining_budget=remaining_budget,
+                pre_stage_remaining_weights=stage_pre_remaining_weights,
+                post_stage_remaining_weights=remaining_weights,
+                quantization_anomalies=quantization_anomalies[stage_anomaly_start:],
+            )
+        logger.info("Completed layer %d in %.2fs", layer_index, time.perf_counter() - layer_start)
+
+    achieved_global = sum(layer.achieved_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
+    raw_global = sum(layer.raw_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
+    entropy_global = sum(layer.entropy_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
+    huffman_global = sum(layer.huffman_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
+    huffman_shortest_global = min(
+        (int(layer.huffman_shortest_symbol_length_bits) for layer in layer_reports if layer.huffman_shortest_symbol_length_bits is not None),
+        default=0,
+    )
+    huffman_longest_global = max(
+        (int(layer.huffman_longest_symbol_length_bits) for layer in layer_reports if layer.huffman_longest_symbol_length_bits is not None),
+        default=0,
+    )
+    side_global = sum(layer.side_information_bitwidth * model.get_submodule(layer.name).weight.numel() for layer in layer_reports) / max(total_weights, 1)
+
+    run_report = RunReport(
+        timestamp=report_metadata["timestamp"],
+        git_commit=report_metadata["git_commit"],
+        environment_name=report_metadata["environment_name"],
+        device=str(device),
+        model_id=report_metadata["model_id"],
+        model_revision=report_metadata.get("model_revision"),
+        tokenizer_id=report_metadata["tokenizer_id"],
+        tokenizer_revision=report_metadata.get("tokenizer_revision"),
+        quant_config_path=report_metadata["quant_config_path"],
+        eval_config_path=report_metadata.get("eval_config_path"),
+        sequence_length=report_metadata["sequence_length"],
+        calibration_sequences=report_metadata["calibration_sequences"],
+        target_global_bitwidth=config.target_global_bitwidth,
+        achieved_global_bitwidth=achieved_global,
+        raw_average_bitwidth=raw_global,
+        entropy_average_bitwidth=entropy_global,
+        huffman_average_bitwidth=huffman_global,
+        huffman_shortest_symbol_length_bits=huffman_shortest_global,
+        huffman_longest_symbol_length_bits=huffman_longest_global,
+        side_information_overhead=side_global,
+        layers=layer_reports,
+        notes=report_metadata.get("notes", []),
+        extras={
+            "layer_results": layer_results,
+            "reference_stats_requested": bool(config.reference_stats),
+            "reference_stats_effective_count": sum(
+                1 for payload in layer_results.values() if bool(payload["reference_stats_effective"])
+            ),
+            "worst_layers_by_relative_weight_mse": [
+                {
+                    "name": name,
+                    "kind": payload["kind"],
+                    "layer_index": payload["layer_index"],
+                    "relative_weight_mse": payload["relative_weight_mse"],
+                    "entropy_rate": payload["entropy_rate"],
+                    "huffman_rate": payload["huffman_rate"],
+                    "huffman_shortest_symbol_length_bits": payload["huffman_shortest_symbol_length_bits"],
+                    "huffman_longest_symbol_length_bits": payload["huffman_longest_symbol_length_bits"],
+                    "reference_stats_effective": payload["reference_stats_effective"],
+                }
+                for name, payload in sorted(
+                    layer_results.items(),
+                    key=lambda item: float(item[1]["relative_weight_mse"]),
+                    reverse=True,
+                )[:10]
+            ],
+            "kind_summary": _kind_summary(layer_results),
+            "quantization_anomalies": quantization_anomalies,
+            "quantization_runtime_seconds": time.perf_counter() - run_start,
+            "checkpoint_resumed": bool(restored.resumed),
+            "checkpoint_restored_stage_count": int(restored.restored_stage_count),
+        },
+    )
+
+    run_dir = repo_path("outputs", "quantized", config.run_name)
+    artifact_dir = save_quantized_artifact(model, tokenizer, run_dir, metadata=run_report.to_dict())
+    save_json(artifact_dir / "layer_results.json", layer_results)
+    markdown_path = ensure_parent_dir(artifact_dir / "report.md")
+    markdown_path.write_text(render_run_report_markdown(run_report), encoding="utf-8")
+    checkpoint_manager.mark_completed()
+    return run_report, artifact_dir

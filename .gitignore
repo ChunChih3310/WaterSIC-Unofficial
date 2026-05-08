@@ -1,0 +1,57 @@
+# Private local configuration
+.env
+.env.*
+!.env.example
+AGENTS.md
+
+# Local environments and caches
+.conda/
+.cache/
+hf_cache/
+models/
+checkpoints/
+
+# Python build/test artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dylib
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Generated WaterSIC artifacts
+outputs/
+archive/
+paper/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.npy
+*.npz
+*.pkl
+*.parquet
+*.arrow
+*.sqlite
+*.msgpack
+*.zst
+*.xz
+*.lzma
+*.gz
+*.tar
+*.zip
+*.log
+
+# Local editor and OS clutter
+.DS_Store
+.vscode/
+.idea/
